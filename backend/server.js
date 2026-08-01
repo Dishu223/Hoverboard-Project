@@ -40,6 +40,46 @@ function generateRoomCode() {
   return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
 
+class RateLimiter {
+  constructor(limit, interval) {
+    this.limit = limit;
+    this.interval = interval;
+    this.clients = new Map();
+  }
+
+  check(socketId) {
+    const now = Date.now();
+    if (!this.clients.has(socketId)) {
+      this.clients.set(socketId, { tokens: this.limit - 1, lastRefill: now });
+      return true;
+    }
+
+    const client = this.clients.get(socketId);
+    const timePassed = now - client.lastRefill;
+    
+    // Add tokens based on time passed
+    if (timePassed > this.interval) {
+      client.tokens = this.limit;
+      client.lastRefill = now;
+    }
+
+    if (client.tokens > 0) {
+      client.tokens--;
+      return true;
+    }
+    
+    return false;
+  }
+  
+  remove(socketId) {
+    this.clients.delete(socketId);
+  }
+}
+
+const chatLimiter = new RateLimiter(5, 20000); // 5 messages per 20 seconds
+const emojiLimiter = new RateLimiter(3, 1000); // 3 emojis per second
+const drawLimiter = new RateLimiter(40, 1000); // 40 draw batches per second
+
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
@@ -198,6 +238,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('draw_batch', (drawData) => {
+    if (!drawLimiter.check(socket.id)) return;
     const user = users.get(socket.id);
     if (user) {
       const room = rooms.get(user.roomId);
@@ -256,6 +297,9 @@ io.on('connection', (socket) => {
   };
 
   socket.on('send_message', (message) => {
+    if (!chatLimiter.check(socket.id)) {
+      return socket.emit('chat_message', { system: true, text: 'You are sending messages too fast! Please wait.', type: 'wrong_guess' });
+    }
     const user = users.get(socket.id);
     if (user) {
       const room = rooms.get(user.roomId);
@@ -288,7 +332,10 @@ io.on('connection', (socket) => {
               }
 
               io.to(user.roomId).emit('chat_message', { system: true, text: `🎉 ${user.username} guessed the word! (+${guessPoints} pts)`, type: 'correct_guess' });
-              io.to(user.roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings });
+              io.to(user.roomId).emit('score_update', [
+                { id: player.id, score: player.score },
+                ...(artist ? [{ id: artist.id, score: artist.score }] : [])
+              ]);
               
               // If everyone guessed it
               if (room.guessedPlayers.size === room.players.length - 1) {
@@ -304,7 +351,7 @@ io.on('connection', (socket) => {
               if (room.settings.penaltyOnWrongGuess) {
                 player.score = Math.max(0, player.score - 2);
                 socket.emit('chat_message', { system: true, text: `❌ Incorrect! (-2 pts)`, type: 'wrong_guess' });
-                io.to(user.roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings });
+                io.to(user.roomId).emit('score_update', [{ id: player.id, score: player.score }]);
               }
             }
           }
@@ -318,6 +365,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reaction', (emoji) => {
+    if (!emojiLimiter.check(socket.id)) return;
     const user = users.get(socket.id);
     if (user) {
       io.to(user.roomId).emit('room_reaction', emoji);
@@ -356,6 +404,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    chatLimiter.remove(socket.id);
+    emojiLimiter.remove(socket.id);
+    drawLimiter.remove(socket.id);
     const user = users.get(socket.id);
     if (user) {
       const room = rooms.get(user.roomId);

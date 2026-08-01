@@ -16,6 +16,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
   const lastPosRef = useRef(null);
   const undoStackRef = useRef([]);
   const redoStackRef = useRef([]);
+  const strokeBufferRef = useRef([]);
 
   const colors = [
     { name: 'Pastel Pink', hex: '#FF9CEE' },
@@ -81,30 +82,66 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
 
     const emitDraw = (type, data) => {
       if (socket && isArtist && isPlaying) {
-        socket.emit('draw_batch', { type, ...data, isCanvas: true });
+        if (type === 'stroke') {
+          // Tuple pack: [typeId, x0, y0, x1, y1, color, size, isEraser]
+          strokeBufferRef.current.push([
+            1, 
+            Math.round(data.x0), Math.round(data.y0), 
+            Math.round(data.x1), Math.round(data.y1), 
+            data.color, data.size, data.isEraser ? 1 : 0
+          ]);
+        } else if (type === 'fill') {
+          strokeBufferRef.current.push([2, data.color]);
+        } else if (type === 'clear') {
+          strokeBufferRef.current.push([3]);
+        }
       }
     };
 
     const applyDrawEvent = (data) => {
-      const { type } = data;
       const tCtx = canvasRef.current.getContext('2d');
       
-      if (type === 'stroke') {
-        const { x0, y0, x1, y1, color, size, isEraser } = data;
-        tCtx.beginPath();
-        tCtx.moveTo(x0, y0);
-        tCtx.lineTo(x1, y1);
-        tCtx.strokeStyle = isEraser ? '#ffffff' : color;
-        tCtx.lineWidth = size * 3;
-        tCtx.lineCap = 'round';
-        tCtx.lineJoin = 'round';
-        tCtx.stroke();
-      } else if (type === 'fill') {
-        tCtx.fillStyle = data.color;
-        tCtx.fillRect(0, 0, canvas.width, canvas.height);
-      } else if (type === 'clear') {
-        tCtx.fillStyle = '#ffffff';
-        tCtx.fillRect(0, 0, canvas.width, canvas.height);
+      if (data.tuples) {
+        // Unpack batched tuples
+        data.tuples.forEach(tuple => {
+          const typeId = tuple[0];
+          if (typeId === 1) { // stroke
+            tCtx.beginPath();
+            tCtx.moveTo(tuple[1], tuple[2]);
+            tCtx.lineTo(tuple[3], tuple[4]);
+            tCtx.strokeStyle = tuple[7] ? '#ffffff' : tuple[5];
+            tCtx.lineWidth = tuple[6] * 3;
+            tCtx.lineCap = 'round';
+            tCtx.lineJoin = 'round';
+            tCtx.stroke();
+          } else if (typeId === 2) { // fill
+            tCtx.fillStyle = tuple[1];
+            tCtx.fillRect(0, 0, canvas.width, canvas.height);
+          } else if (typeId === 3) { // clear
+            tCtx.fillStyle = '#ffffff';
+            tCtx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+        });
+      } else {
+        // Fallback for old unbatched events (if any arrive during transition)
+        const { type } = data;
+        if (type === 'stroke') {
+          const { x0, y0, x1, y1, color, size, isEraser } = data;
+          tCtx.beginPath();
+          tCtx.moveTo(x0, y0);
+          tCtx.lineTo(x1, y1);
+          tCtx.strokeStyle = isEraser ? '#ffffff' : color;
+          tCtx.lineWidth = size * 3;
+          tCtx.lineCap = 'round';
+          tCtx.lineJoin = 'round';
+          tCtx.stroke();
+        } else if (type === 'fill') {
+          tCtx.fillStyle = data.color;
+          tCtx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (type === 'clear') {
+          tCtx.fillStyle = '#ffffff';
+          tCtx.fillRect(0, 0, canvas.width, canvas.height);
+        }
       }
     };
 
@@ -221,7 +258,16 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
       });
     }
 
+    // Flush batch loop
+    const flushInterval = setInterval(() => {
+      if (strokeBufferRef.current.length > 0 && socket && isArtist && isPlaying) {
+        socket.emit('draw_batch', { tuples: strokeBufferRef.current, isCanvas: true });
+        strokeBufferRef.current = []; // Clear buffer
+      }
+    }, 50);
+
     return () => {
+      clearInterval(flushInterval);
       canvas.removeEventListener('mousedown', handleStart);
       canvas.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleEnd);

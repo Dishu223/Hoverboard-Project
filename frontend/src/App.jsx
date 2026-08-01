@@ -134,16 +134,32 @@ function App() {
       setRoom(data);
     });
 
+    newSocket.on('score_update', (updates) => {
+      setRoom(prev => {
+        if (!prev) return prev;
+        const newPlayers = prev.players.map(p => {
+          const update = updates.find(u => u.id === p.id);
+          return update ? { ...p, score: update.score } : p;
+        });
+        newPlayers.sort((a, b) => b.score - a.score);
+        return { ...prev, players: newPlayers };
+      });
+    });
+
     newSocket.on('room_reaction', (emoji) => {
-      const id = Date.now() + Math.random();
-      // Random X position across the canvas (between 10% and 90% of width)
-      const x = 10 + Math.random() * 80; 
-      setReactions((prev) => [...prev, { id, emoji, x }]);
-      
-      // Remove reaction after animation finishes
-      setTimeout(() => {
-        setReactions((prev) => prev.filter(r => r.id !== id));
-      }, 2000);
+      // Spawn 4 to 8 floating emojis per click for dramatic effect
+      const count = Math.floor(Math.random() * 5) + 4;
+      const newReactions = [];
+      for (let i = 0; i < count; i++) {
+        const id = Date.now() + Math.random() + i;
+        const x = 10 + Math.random() * 80;
+        newReactions.push({ id, emoji, x });
+        
+        setTimeout(() => {
+          setReactions((prev) => prev.filter(r => r.id !== id));
+        }, 2000 + Math.random() * 500); // randomize fade out slightly
+      }
+      setReactions((prev) => [...prev, ...newReactions]);
     });
     
     newSocket.on('kicked', () => {
@@ -852,6 +868,7 @@ function ChatInput({ socket, disabled }) {
 function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) {
   const containerRef = useRef(null);
   const squaresRef = useRef([]);
+  const hoverBufferRef = useRef([]);
   const SQUARES_COUNT = 4800; // 80 cols x 60 rows for wide rectangle
   const COLS = 80;
   const ROWS = 60;
@@ -981,8 +998,15 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
 
     // Socket listeners for remote drawing
     const onDraw = (data) => {
-      const { indices, color, isPerm } = data;
-      indices.forEach(idx => setColor(squaresRef.current[idx], color, isPerm, idx));
+      if (data.hoverTuples) {
+        data.hoverTuples.forEach(tuple => {
+          const [indices, color, isPerm] = tuple;
+          indices.forEach(idx => setColor(squaresRef.current[idx], color, isPerm, idx));
+        });
+      } else if (data.indices) { // Fallback for old unbatched events
+        const { indices, color, isPerm } = data;
+        indices.forEach(idx => setColor(squaresRef.current[idx], color, isPerm, idx));
+      }
     };
 
     const onClear = () => {
@@ -1013,6 +1037,16 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
       socket?.off('board_state', onBoardState);
       socket?.off('request_board_state', onRequestBoardState);
     };
+  }, [socket, isArtist, isPlaying]);
+
+  useEffect(() => {
+    const flushInterval = setInterval(() => {
+      if (hoverBufferRef.current.length > 0 && socket && isArtist && isPlaying) {
+        socket.emit('draw_batch', { hoverTuples: hoverBufferRef.current, isHoverboard: true });
+        hoverBufferRef.current = [];
+      }
+    }, 50);
+    return () => clearInterval(flushInterval);
   }, [socket, isArtist, isPlaying]);
 
   const handleSnapshot = () => {
@@ -1093,7 +1127,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
        }
        
        filled.forEach(idx => setColor(squaresRef.current[idx], color, true, idx));
-       socket.emit('draw_batch', { indices: filled, color, isPerm: true });
+       hoverBufferRef.current.push([filled, color, true]);
        return;
     }
 
@@ -1126,8 +1160,8 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
        }
        
        indicesToDraw.forEach(idx => setColor(squaresRef.current[idx], color, isPermanent, idx));
-       socket.emit('draw_batch', { indices: indicesToDraw, color, isPerm: isPermanent });
-    }
+       hoverBufferRef.current.push([indicesToDraw, color, isPermanent]);
+     }
   };
 
   const setColor = (element, color, isPerm, index) => {
