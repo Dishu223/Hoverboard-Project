@@ -428,11 +428,21 @@ io.on('connection', (socket) => {
               const wasArtist = (currentRoom.state !== 'WAITING' && currentRoom.currentArtistIndex === pIndex);
               
               currentRoom.players.splice(pIndex, 1);
-              if (currentRoom.currentArtistIndex >= currentRoom.players.length) {
+              
+              if (pIndex < currentRoom.currentArtistIndex) {
+                 currentRoom.currentArtistIndex -= 1;
+              } else if (currentRoom.currentArtistIndex >= currentRoom.players.length) {
                  currentRoom.currentArtistIndex = 0;
               }
               
               if (currentRoom.players.length === 0) {
+                // Clear any running timers
+                if (currentRoom.timer) {
+                  clearInterval(currentRoom.timer);
+                  currentRoom.timer = null;
+                }
+                currentRoom.state = 'WAITING';
+                
                 // Empty room cleanup in 10 minutes
                 currentRoom.deleteTimeout = setTimeout(() => {
                   rooms.delete(user.roomId);
@@ -530,6 +540,10 @@ function getThreeRandomWords(room) {
 function startRound(roomId) {
   const room = rooms.get(roomId);
   if (!room) return;
+  if (room.players.length === 0) {
+    room.state = 'WAITING';
+    return;
+  }
 
   if (room.timer) {
     clearInterval(room.timer);
@@ -592,6 +606,10 @@ function startRound(roomId) {
 function beginDrawingPhase(roomId, selectedWord) {
   const room = rooms.get(roomId);
   if (!room) return;
+  if (room.players.length === 0) {
+    room.state = 'WAITING';
+    return;
+  }
   
   if (selectedWord) {
     room.usedWords.add(selectedWord);
@@ -670,6 +688,10 @@ function beginDrawingPhase(roomId, selectedWord) {
 function endRound(roomId) {
   const room = rooms.get(roomId);
   if (!room) return;
+  if (room.players.length === 0) {
+    room.state = 'WAITING';
+    return;
+  }
 
   if (room.timer) {
     clearInterval(room.timer);
