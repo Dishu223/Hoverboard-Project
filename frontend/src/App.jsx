@@ -345,12 +345,83 @@ function App() {
       </ul>
       
       {room.state === 'WAITING' && room.players[0]?.id === socket?.id && (
-        <button className="btn-primary" onClick={handleStartGame} style={{ marginTop: 'auto' }}>Start Game</button>
+        <button className="btn-primary desktop-only-start" onClick={handleStartGame} style={{ marginTop: 'auto' }}>Start Game</button>
       )}
       {room.state === 'WAITING' && room.players[0]?.id !== socket?.id && (
-        <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 'auto' }}>Waiting for host...</div>
+        <div className="desktop-only-start" style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 'auto' }}>Waiting for host...</div>
       )}
     </>
+  );
+
+  const renderStartButtonMobile = () => {
+    if (room.state !== 'WAITING') return null;
+    if (room.players[0]?.id === socket?.id) {
+      return (
+        <button className="btn-primary mobile-only-start" onClick={handleStartGame} style={{ position: 'fixed', bottom: '16px', right: '16px', zIndex: 100, padding: '12px 24px', fontSize: '1.2rem', boxShadow: 'var(--shadow-lg)' }}>
+          Start Game
+        </button>
+      );
+    } else {
+      return (
+        <div className="mobile-only-start" style={{ position: 'fixed', bottom: '16px', right: '16px', zIndex: 100, background: 'var(--glass-bg)', padding: '8px 16px', borderRadius: '12px', fontWeight: 'bold' }}>
+          Waiting for host...
+        </div>
+      );
+    }
+  };
+
+  const renderReactions = () => (
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="reaction-buttons-wrapper">
+        {myEmojis.map(emoji => (
+          <button 
+            key={emoji}
+            className="btn-secondary" 
+            style={{ fontSize: '1.5rem', padding: '8px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => socket.emit('reaction', emoji)}
+            title={`Send ${emoji} reaction`}
+          >
+            {emoji}
+          </button>
+        ))}
+        <button 
+          className="btn-primary" 
+          style={{ fontSize: '1.5rem', padding: '8px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          title="Customize Emojis"
+        >
+          +
+        </button>
+      </div>
+      {showEmojiPicker && (
+        <div className="card emoji-picker-popup" style={{ position: 'absolute', bottom: 'calc(100% + 10px)', right: '0', zIndex: 100, padding: '12px', border: '1px solid var(--color-primary)', display: 'flex', flexWrap: 'wrap', gap: '8px', width: 'max-content', maxWidth: '300px' }}>
+          <div style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-primary)', marginBottom: '8px', fontWeight: 'bold' }}>Select up to 6 emojis</div>
+          {ALL_EMOJIS.map(emoji => {
+            const isSelected = myEmojis.includes(emoji);
+            return (
+              <button
+                key={emoji}
+                className={isSelected ? "btn-primary" : "btn-secondary"}
+                style={{ fontSize: '1.2rem', padding: '6px 10px', borderRadius: '8px' }}
+                onClick={() => {
+                  if (isSelected) {
+                    setMyEmojis(prev => prev.filter(e => e !== emoji));
+                  } else {
+                    if (myEmojis.length < 6) {
+                      setMyEmojis(prev => [...prev, emoji]);
+                    } else {
+                      alert("You can only select up to 6 emojis. Deselect one first.");
+                    }
+                  }
+                }}
+              >
+                {emoji}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 
   if (gameState === 'ROOM') {
@@ -522,63 +593,15 @@ function App() {
                   </div>
                 ))}
                 
-                {/* Reaction Buttons */}
-                <div style={{ position: 'relative' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
-                    {myEmojis.map(emoji => (
-                      <button 
-                        key={emoji}
-                        className="btn-secondary" 
-                        style={{ fontSize: '1.5rem', padding: '8px 16px', borderRadius: '50%' }}
-                        onClick={() => socket.emit('reaction', emoji)}
-                        title={`Send ${emoji} reaction`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                    <button 
-                      className="btn-primary" 
-                      style={{ fontSize: '1.5rem', padding: '8px 16px', borderRadius: '50%' }}
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      title="Customize Emojis"
-                    >
-                      +
-                    </button>
-                  </div>
-                  {showEmojiPicker && (
-                    <div className="card" style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: '8px', width: 'max-content', maxWidth: '300px', maxHeight: '35vh', overflowY: 'auto', justifyContent: 'center', padding: '12px', border: '1px solid var(--color-primary)' }}>
-                      <div style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-primary)', marginBottom: '8px', fontWeight: 'bold' }}>Select up to 6 emojis</div>
-                      {ALL_EMOJIS.map(emoji => {
-                        const isSelected = myEmojis.includes(emoji);
-                        return (
-                          <button
-                            key={emoji}
-                            className={isSelected ? "btn-primary" : "btn-secondary"}
-                            style={{ fontSize: '1.2rem', padding: '6px 10px', borderRadius: '8px' }}
-                            onClick={() => {
-                              if (isSelected) {
-                                setMyEmojis(prev => prev.filter(e => e !== emoji));
-                              } else {
-                                if (myEmojis.length < 6) {
-                                  setMyEmojis(prev => [...prev, emoji]);
-                                } else {
-                                  alert("You can only select up to 6 emojis. Deselect one first.");
-                                }
-                              }
-                            }}
-                          >
-                            {emoji}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div className="desktop-reactions">
+                  {renderReactions()}
                 </div>
               </div>
               )}
             </div>
 
-            <div className="sidebar card chat-sidebar">
+            <div className="mobile-chat-layout" style={{ flex: 1, display: 'flex', minHeight: 0, gap: '8px' }}>
+              <div className="sidebar card chat-sidebar" style={{ flex: 1 }}>
               <h4 style={{ marginBottom: '8px', color: 'var(--color-secondary)' }}>Chat ({roomId})</h4>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div className="chat-messages" ref={chatContainerRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
@@ -597,14 +620,19 @@ function App() {
                       </div>
                     );
                   })}
-                  {/* removed empty div */}
                 </div>
                 <ChatInput socket={socket} disabled={isArtist && room.state === 'DRAWING'} />
               </div>
+              
+              <div className="mobile-reactions">
+                {renderReactions()}
+              </div>
             </div>
+            
+            {renderStartButtonMobile()}
           </div>
-          
         </div>
+      </div>
     );
   }
 

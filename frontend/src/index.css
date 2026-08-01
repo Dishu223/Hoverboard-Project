@@ -628,6 +628,18 @@ select.input {
   box-sizing: border-box;
 }
 
+/* Desktop/Mobile specific classes */
+.mobile-reactions { display: flex !important; flex-direction: column; justify-content: space-evenly; width: 60px; height: 100%; border-left: 1px solid var(--border-color); padding-left: 8px; display: none; }
+.mobile-only-start { display: none; }
+.desktop-reactions .reaction-buttons-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
 /* Mobile Menu Overlay */
 .mobile-menu-overlay {
   position: fixed;
@@ -684,6 +696,34 @@ select.input {
   .desktop-sidebar {
     display: none !important;
   }
+  .desktop-reactions {
+    display: none !important;
+  }
+  .desktop-only-start {
+    display: none !important;
+  }
+  
+  .mobile-reactions {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    width: 60px;
+    height: 100%;
+    border-left: 1px solid rgba(0,0,0,0.1);
+    padding-left: 8px;
+    align-items: center;
+  }
+  .mobile-reactions .reaction-buttons-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: space-evenly;
+  }
+
+  .mobile-only-start {
+    display: block;
+  }
+
   .hamburger-btn {
     display: block;
   }
@@ -734,20 +774,22 @@ select.input {
   }
 
   .artist-toolbar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    justify-content: flex-start;
-    padding: 12px;
-    gap: 16px;
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-  .artist-toolbar::-webkit-scrollbar {
-    display: none;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    margin-bottom: 8px;
+    width: 100% !important;
+    overflow: visible;
   }
   .artist-toolbar > div {
-    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transform: scale(0.95);
+    width: 100%;
   }
 
   .game-room {
@@ -788,7 +830,7 @@ select.input {
   .game-room > .main-board {
     flex: none;
     width: 100% !important;
-    height: 45vh; /* Responsive canvas height */
+    height: 55vh; /* Responsive canvas height increased to 55vh */
     min-height: 250px;
   }
   
