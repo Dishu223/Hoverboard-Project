@@ -126,6 +126,18 @@ io.on('connection', (socket) => {
         state: room.state,
         settings: room.settings
       });
+      // Send the current word hint to the rejoining player if in DRAWING state
+      if (room.state === 'DRAWING') {
+        const hint = room.currentWord.replace(/[a-zA-Z]/g, '_ ').trim();
+        const artist = room.players[room.currentArtistIndex];
+        const isArtist = artist && artist.username === username;
+        
+        if (isArtist) {
+          socket.emit('word_to_draw', room.currentWord);
+        } else {
+          socket.emit('word_hint', hint);
+        }
+      }
       return callback({ success: true, roomId: roomCode });
     }
 
@@ -344,14 +356,73 @@ io.on('connection', (socket) => {
                 }
               }
             }
-          }, 5000); // 5 seconds grace period
+          }, 60000); // 60 seconds grace period
         }
       }
       users.delete(socket.id);
     }
     console.log(`User disconnected: ${socket.id}`);
   });
+
+  socket.on('leave_room', () => {
+    handleDisconnect(socket);
+  });
+
+  // --- WORD SELECTION EVENTS ---
+  socket.on('select_word', ({ word }) => {
+    const user = users.get(socket.id);
+    if (!user) return;
+    const room = rooms.get(user.roomId);
+    if (!room || room.state !== 'WORD_SELECTION') return;
+    
+    const artist = room.players[room.currentArtistIndex];
+    if (artist && artist.id === socket.id) {
+      if (room.timer) {
+        clearInterval(room.timer);
+        room.timer = null;
+      }
+      beginDrawingPhase(user.roomId, word);
+    }
+  });
+
+  socket.on('shuffle_words', () => {
+    const user = users.get(socket.id);
+    if (!user) return;
+    const room = rooms.get(user.roomId);
+    if (!room || room.state !== 'WORD_SELECTION') return;
+    
+    const artist = room.players[room.currentArtistIndex];
+    if (artist && artist.id === socket.id) {
+      if (room.shufflesRemaining > 0) {
+        room.shufflesRemaining--;
+        const words = getThreeRandomWords(room);
+        room.currentSelectionWords = words;
+        socket.emit('word_selection_start', { words, shufflesRemaining: room.shufflesRemaining });
+      }
+    }
+  });
 });
+
+function getThreeRandomWords(room) {
+  let categoryWords = [];
+  if (room.settings.categories && Array.isArray(room.settings.categories)) {
+    room.settings.categories.forEach(cat => {
+      if (WORD_CATEGORIES[cat]) {
+        categoryWords = categoryWords.concat(WORD_CATEGORIES[cat]);
+      } else if (cat === 'custom' && room.settings.customWords) {
+        const customList = room.settings.customWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
+        categoryWords = categoryWords.concat(customList);
+      }
+    });
+  }
+  
+  if (categoryWords.length < 3) {
+    categoryWords = WORD_CATEGORIES.animals.concat(WORD_CATEGORIES.food, WORD_CATEGORIES.objects);
+  }
+
+  const shuffled = [...categoryWords].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 3);
+}
 
 function startRound(roomId) {
   const room = rooms.get(roomId);
@@ -373,15 +444,25 @@ function startRound(roomId) {
   room.players[room.currentArtistIndex].isArtist = true;
   room.guessedPlayers.clear();
   
-  // Transition to ROUND_STARTING phase
-  room.state = 'ROUND_STARTING';
+  // Transition to WORD_SELECTION phase
+  room.state = 'WORD_SELECTION';
   room.currentRound += 1;
-  room.timeRemaining = 5; // 5-second countdown
+  room.timeRemaining = 15; // 15-second selection phase
+  room.shufflesRemaining = 3;
   
+  // Get 3 words
+  const words = getThreeRandomWords(room);
+  room.currentSelectionWords = words;
+
   // Explicitly clear board for everyone
   io.to(roomId).emit('clear_board');
   io.to(roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings, currentRound: room.currentRound });
   
+  const artist = room.players[room.currentArtistIndex];
+  if (artist) {
+    io.to(artist.id).emit('word_selection_start', { words, shufflesRemaining: room.shufflesRemaining });
+  }
+
   room.timer = setInterval(() => {
     room.timeRemaining--;
     io.to(roomId).emit('timer_update', room.timeRemaining);
@@ -389,33 +470,17 @@ function startRound(roomId) {
     if (room.timeRemaining <= 0) {
       clearInterval(room.timer);
       room.timer = null;
-      beginDrawingPhase(roomId);
+      const autoWord = room.currentSelectionWords[Math.floor(Math.random() * room.currentSelectionWords.length)];
+      beginDrawingPhase(roomId, autoWord);
     }
   }, 1000);
 }
 
-function beginDrawingPhase(roomId) {
+function beginDrawingPhase(roomId, selectedWord) {
   const room = rooms.get(roomId);
   if (!room) return;
   
-  let categoryWords = [];
-  if (room.settings.categories && Array.isArray(room.settings.categories)) {
-    room.settings.categories.forEach(cat => {
-      if (WORD_CATEGORIES[cat]) {
-        categoryWords = categoryWords.concat(WORD_CATEGORIES[cat]);
-      } else if (cat === 'custom' && room.settings.customWords) {
-        const customList = room.settings.customWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
-        categoryWords = categoryWords.concat(customList);
-      }
-    });
-  }
-  
-  if (categoryWords.length === 0) {
-    categoryWords = WORD_CATEGORIES.animals.concat(WORD_CATEGORIES.food, WORD_CATEGORIES.objects);
-  }
-
-  const word = categoryWords[Math.floor(Math.random() * categoryWords.length)];
-  room.currentWord = word;
+  room.currentWord = selectedWord;
   room.state = 'DRAWING';
   room.timeRemaining = room.settings.timeLimit;
   

@@ -3,10 +3,9 @@ import { io } from 'socket.io-client';
 import { Send, Eraser, Camera, Moon, Sun, LogOut } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { playSFX } from './audio';
+import confetti from 'canvas-confetti';
 import './App.css';
 import { CanvasBoard } from './components/CanvasBoard';
-
-
 const BACKEND_URL = import.meta.env.PROD ? window.location.origin : "http://localhost:3001";
 const socket = io(BACKEND_URL);
 
@@ -110,6 +109,7 @@ function App() {
   
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [reactions, setReactions] = useState([]);
+  const [wordSelection, setWordSelection] = useState(null); // { words: [], shufflesRemaining: 3 }
   
   const chatContainerRef = useRef(null);
 
@@ -148,6 +148,11 @@ function App() {
       setChat((prev) => [...prev, msg]);
       if (msg.system && msg.text.includes('guessed the word')) {
         playSFX('guess');
+        // trigger fireworks if it was THIS user who guessed
+        const usernameWithoutTrim = username || localStorage.getItem('hoverboard_username');
+        if (usernameWithoutTrim && msg.text.includes(usernameWithoutTrim)) {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
       } else if (!msg.system) {
         playSFX('chat');
       }
@@ -166,12 +171,23 @@ function App() {
       setChat((prev) => [...prev, { system: true, text: `Round started! ${data.artistName} is drawing.` }]);
     });
 
+    newSocket.on('word_selection_start', (data) => {
+      setWordSelection(data);
+    });
+
     newSocket.on('your_word', (word) => {
       setCurrentWord(word);
+      setWordSelection(null);
     });
     
     newSocket.on('word_hint', (hint) => {
       setWordHint(hint);
+      setWordSelection(null);
+    });
+
+    newSocket.on('word_to_draw', (word) => {
+      setCurrentWord(word);
+      setWordSelection(null);
     });
 
     newSocket.on('round_end', (data) => {
@@ -192,21 +208,35 @@ function App() {
     return () => newSocket.close();
   }, []);
 
-  const handleJoin = (e) => {
+  const handleJoin = (e, targetRoomId = roomId) => {
     if (e) e.preventDefault();
-    if (!username.trim() || !roomId.trim()) return;
+    if (!username.trim() || !targetRoomId.trim()) return;
     
     localStorage.setItem('hoverboard_username', username.trim());
     localStorage.setItem('hoverboard_avatar', JSON.stringify(avatar));
 
-    socket.emit('join_room', { username: username.trim(), roomId, avatar, isSpectator }, (res) => {
+    socket.emit('join_room', { username: username.trim(), roomId: targetRoomId, avatar, isSpectator }, (res) => {
       if (res.success) {
         setRoomId(res.roomId);
         setGameState('ROOM');
+        localStorage.setItem('hoverboard_room_id', res.roomId);
+        localStorage.setItem('hoverboard_join_time', Date.now().toString());
       } else {
         alert(res.error);
+        localStorage.removeItem('hoverboard_room_id');
       }
     });
+  };
+
+  const handleRejoin = () => {
+    const savedRoomId = localStorage.getItem('hoverboard_room_id');
+    const joinTime = localStorage.getItem('hoverboard_join_time');
+    
+    if (savedRoomId && joinTime && (Date.now() - parseInt(joinTime)) < 60000) {
+      setRoomId(savedRoomId);
+      // artificially call handleJoin with the saved room ID
+      handleJoin(null, savedRoomId);
+    }
   };
 
   const handleCreateBtn = (e) => {
@@ -226,6 +256,8 @@ function App() {
       if (res.success) {
         setRoomId(res.roomId);
         setGameState('ROOM');
+        localStorage.setItem('hoverboard_room_id', res.roomId);
+        localStorage.setItem('hoverboard_join_time', Date.now().toString());
       } else {
         alert(res.error);
       }
@@ -237,13 +269,11 @@ function App() {
   };
 
   const handleLeaveRoom = () => {
-    // Basic disconnect and return to landing
-    socket.disconnect();
-    const newSocket = io(BACKEND_URL);
-    setSocket(newSocket);
+    socket.emit('leave_room');
     setGameState('LANDING');
     setRoom({ players: [], state: 'WAITING' });
     setChat([]);
+    localStorage.removeItem('hoverboard_room_id');
   };
 
   const toggleTheme = () => {
@@ -370,10 +400,31 @@ function App() {
               ) : (
                 <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
                   
-                  {room.state === 'ROUND_STARTING' && (
-                    <div className="round-overlay">
-                      <h2 style={{ fontSize: '2.5rem', marginBottom: '20px' }}>Round {room.currentRound}</h2>
-                      <div className="countdown-number">{room.timeRemaining}</div>
+                  {room.state === 'WORD_SELECTION' && (
+                    <div className="round-overlay" style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(10px)', border: '1px solid var(--color-primary)' }}>
+                      {myPlayerInfo?.isArtist ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <h2 className="neon-text" style={{ fontSize: '2rem', marginBottom: '20px' }}>Choose a word!</h2>
+                          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            {wordSelection?.words?.map((w) => (
+                              <button key={w} className="btn-primary" style={{ padding: '12px 24px', fontSize: '1.2rem' }} onClick={() => socket.emit('select_word', { word: w })}>
+                                {w}
+                              </button>
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                            <div className="countdown-number" style={{ fontSize: '2.5rem' }}>{room.timeRemaining}</div>
+                            <button className="btn-secondary" style={{ padding: '12px 24px' }} disabled={wordSelection?.shufflesRemaining <= 0} onClick={() => socket.emit('shuffle_words')}>
+                              Shuffle ({wordSelection?.shufflesRemaining} left)
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <h2 className="neon-text" style={{ fontSize: '2rem', marginBottom: '20px' }}>Artist is choosing a word...</h2>
+                          <div className="countdown-number">{room.timeRemaining}</div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -449,6 +500,11 @@ function App() {
           </button>
           <div className="card">
           <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Enter the Grid</h2>
+          {localStorage.getItem('hoverboard_room_id') && localStorage.getItem('hoverboard_join_time') && (Date.now() - parseInt(localStorage.getItem('hoverboard_join_time'))) < 60000 && (
+            <button type="button" className="btn-primary" onClick={handleRejoin} style={{ marginBottom: '16px', background: '#10b981', color: 'white', width: '100%', padding: '12px', fontSize: '1.1rem' }}>
+              Rejoin Match ({localStorage.getItem('hoverboard_room_id')})
+            </button>
+          )}
           <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <AvatarCreator avatar={avatar} setAvatar={setAvatar} />
             <input 
