@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Send, Eraser, Camera, Moon, Sun, LogOut } from 'lucide-react';
+import { Send, Eraser, Camera, Moon, Sun, LogOut, Menu, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { playSFX } from './audio';
 import confetti from 'canvas-confetti';
@@ -119,6 +119,7 @@ function App() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [wordSelection, setWordSelection] = useState(null); // { words: [], shufflesRemaining: 3, customDrawMode: boolean }
   const [customDrawWord, setCustomDrawWord] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const chatContainerRef = useRef(null);
 
@@ -314,6 +315,44 @@ function App() {
   const myPlayerInfo = room.players.find(p => p.id === socket?.id);
   const isArtist = myPlayerInfo?.isArtist;
 
+  const renderPlayersList = () => (
+    <>
+      <h4 style={{ marginBottom: '8px', color: 'var(--color-secondary)' }}>Players</h4>
+      <ul className="player-list">
+        {room.players.map((p, i) => (
+          <li key={i} className={`player-item ${p.isArtist ? 'is-artist' : ''}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+               <MiniAvatar avatar={p.avatar} />
+               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                 {p.username} {p.id === socket?.id ? '(You)' : ''} {p.isSpectator ? '👁️' : ''}
+               </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontWeight: 'bold' }}>{p.score}</span>
+              {p.id !== socket?.id && (
+                <button 
+                  className="btn-secondary" 
+                  style={{ padding: '2px 6px', fontSize: '0.7rem' }}
+                  onClick={() => socket.emit('votekick', p.id)}
+                  title="Vote Kick"
+                >
+                  Kick
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      
+      {room.state === 'WAITING' && room.players[0]?.id === socket?.id && (
+        <button className="btn-primary" onClick={handleStartGame} style={{ marginTop: 'auto' }}>Start Game</button>
+      )}
+      {room.state === 'WAITING' && room.players[0]?.id !== socket?.id && (
+        <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 'auto' }}>Waiting for host...</div>
+      )}
+    </>
+  );
+
   if (gameState === 'ROOM') {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', width: '100%', boxSizing: 'border-box' }}>
@@ -322,7 +361,7 @@ function App() {
           <div className="top-bar">
             <div className="top-bar-left">
               <h2 className="neon-text" style={{ fontSize: '1.8rem', margin: 0 }}>Lumynati</h2>
-              <div style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--color-primary)', padding: '6px 16px', borderRadius: '12px', fontWeight: 'bold', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
+              <div className="mobile-hidden" style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--color-primary)', padding: '6px 16px', borderRadius: '12px', fontWeight: 'bold', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
                 Room Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '1.3rem' }}>{roomId}</span>
               </div>
             </div>
@@ -353,7 +392,7 @@ function App() {
               )}
             </div>
 
-            <div className="top-bar-right">
+            <div className="top-bar-right mobile-hidden">
               <button className="btn-secondary" onClick={toggleTheme} style={{ padding: '8px', borderRadius: '50%' }} title="Toggle Theme">
                 {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -361,43 +400,46 @@ function App() {
                 <LogOut size={16} />
               </button>
             </div>
+            
+            <button className="hamburger-btn" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu size={24} color="var(--color-primary)" />
+            </button>
           </div>
+          
+          {isMobileMenuOpen && (
+            <div className="mobile-menu-overlay">
+              <div className="mobile-menu-content card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h2 className="neon-text" style={{ fontSize: '1.5rem', margin: 0 }}>Menu</h2>
+                  <button className="btn-secondary" onClick={() => setIsMobileMenuOpen(false)} style={{ padding: '8px', borderRadius: '50%' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px' }}>
+                  <span style={{ fontWeight: 'bold' }}>Room Code:</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '1.2rem', letterSpacing: '1px', color: 'var(--color-primary)' }}>{roomId}</span>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                  <button className="btn-secondary" onClick={toggleTheme} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />} Theme
+                  </button>
+                  <button className="btn-secondary" onClick={handleLeaveRoom} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', background: '#ef4444', color: 'white', border: 'none' }}>
+                    <LogOut size={16} /> Leave
+                  </button>
+                </div>
+                
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                  {renderPlayersList()}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="game-room">
-            <div className="sidebar card" style={{ padding: '16px' }}>
-              <h4 style={{ marginBottom: '8px', color: 'var(--color-secondary)' }}>Players</h4>
-              <ul className="player-list">
-                {room.players.map((p, i) => (
-                  <li key={i} className={`player-item ${p.isArtist ? 'is-artist' : ''}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-                       <MiniAvatar avatar={p.avatar} />
-                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                         {p.username} {p.id === socket?.id ? '(You)' : ''} {p.isSpectator ? '👁️' : ''}
-                       </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontWeight: 'bold' }}>{p.score}</span>
-                      {p.id !== socket?.id && (
-                        <button 
-                          className="btn-secondary" 
-                          style={{ padding: '2px 6px', fontSize: '0.7rem' }}
-                          onClick={() => socket.emit('votekick', p.id)}
-                          title="Vote Kick"
-                        >
-                          Kick
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              
-              {room.state === 'WAITING' && room.players[0]?.id === socket?.id && (
-                <button className="btn-primary" onClick={handleStartGame} style={{ marginTop: 'auto' }}>Start Game</button>
-              )}
-              {room.state === 'WAITING' && room.players[0]?.id !== socket?.id && (
-                <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 'auto' }}>Waiting for host...</div>
-              )}
+            <div className="sidebar card desktop-sidebar" style={{ padding: '16px' }}>
+              {renderPlayersList()}
             </div>
 
             <div className="main-board" style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
