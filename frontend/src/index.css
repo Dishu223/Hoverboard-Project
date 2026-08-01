@@ -557,8 +557,8 @@ h1, h2, h3, h4, h5, h6 {
   grid-template-rows: repeat(60, 1fr);
   
   /* Perfect responsive scaling */
-  width: 100%;
-  height: 100%;
+  width: 1000px;
+  height: auto;
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: 80 / 60;
@@ -708,12 +708,19 @@ select.input {
   .mobile-reactions {
     display: flex !important;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 8px;
     width: 60px;
     height: 100%;
     border-left: 1px solid rgba(0,0,0,0.1);
     padding-left: 8px;
     align-items: center;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  
+  .mobile-reactions::-webkit-scrollbar {
+    width: 2px;
   }
   .mobile-reactions .reaction-buttons-wrapper {
     display: flex;
@@ -793,6 +800,9 @@ select.input {
     transform: scale(0.95);
     width: 100%;
   }
+  .artist-toolbar > div > span {
+    display: none;
+  }
 
   .game-room {
     flex-direction: column;
@@ -830,10 +840,16 @@ select.input {
   }
 
   .game-room > .main-board {
-    flex: none;
+    flex: 1;
     width: 100% !important;
-    height: 55vh; /* Responsive canvas height increased to 55vh */
-    min-height: 250px;
+    height: auto;
+    min-height: 300px;
+  }
+  
+  .mobile-chat-layout {
+    flex: none !important;
+    height: 30vh !important;
+    max-height: 300px;
   }
   
   .chat-sidebar {
