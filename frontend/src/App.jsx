@@ -262,7 +262,7 @@ function App() {
           
           {/* Top Bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 24px', background: 'rgba(255,255,255,0.3)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.5)' }}>
-            <h2 className="neon-text" style={{ fontSize: '1.5rem', margin: 0, flex: 1 }}>Hover-Guess</h2>
+            <h2 className="neon-text" style={{ fontSize: '1.5rem', margin: 0, flex: 1 }}>Lumynati</h2>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1, justifyContent: 'center' }}>
               <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--color-primary)' }}>
@@ -433,7 +433,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1 className="neon-text" style={{ fontSize: '3rem', marginBottom: '2rem', textAlign: 'center' }}>Hover-Guess</h1>
+      <h1 className="neon-text" style={{ fontSize: '3rem', marginBottom: '2rem', textAlign: 'center' }}>Lumynati</h1>
       
       {gameState === 'LANDING' && (
         <div className="card">
