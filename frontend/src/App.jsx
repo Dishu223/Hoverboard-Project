@@ -72,17 +72,24 @@ function AvatarCreator({ avatar, setAvatar }) {
 function App() {
   const [socket, setSocket] = useState(null);
   const [gameState, setGameState] = useState('LANDING'); // LANDING, INTRO, ROOM
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => localStorage.getItem('hoverboard_username') || '');
   const [roomId, setRoomId] = useState('');
-  const [avatar, setAvatar] = useState(() => Array(64).fill('#ffffff'));
+  const [avatar, setAvatar] = useState(() => {
+    try {
+      const stored = localStorage.getItem('hoverboard_avatar');
+      return stored ? JSON.parse(stored) : Array(64).fill('#ffffff');
+    } catch(e) { return Array(64).fill('#ffffff'); }
+  });
   const [isSpectator, setIsSpectator] = useState(false);
   
   // Settings State
   const [settings, setSettings] = useState({ 
     maxPlayers: 10, 
-    category: 'mixed', 
+    categories: ['animals', 'food', 'objects'], 
+    canvasType: 'hoverboard',
     timeLimit: 60, 
     customWords: '',
+    maxRounds: 6,
     mutators: {
       enabled: false,
       symmetry: false,
@@ -183,15 +190,18 @@ function App() {
   }, []);
 
   const handleJoin = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!username.trim() || !roomId.trim()) return;
     
-    socket.emit('join_room', { username, roomId, avatar, isSpectator }, (response) => {
-      if (response.success) {
-        setRoomId(response.roomId);
+    localStorage.setItem('hoverboard_username', username.trim());
+    localStorage.setItem('hoverboard_avatar', JSON.stringify(avatar));
+
+    socket.emit('join_room', { username: username.trim(), roomId, avatar, isSpectator }, (res) => {
+      if (res.success) {
+        setRoomId(res.roomId);
         setGameState('ROOM');
       } else {
-        alert(response.error);
+        alert(res.error);
       }
     });
   };
@@ -204,12 +214,17 @@ function App() {
 
   const handleCreateSubmit = (e) => {
     e.preventDefault();
-    socket.emit('create_room', { username, settings: { ...settings, avatar, isSpectator } }, (response) => {
-      if (response.success) {
-        setRoomId(response.roomId);
+    if (!username.trim()) return;
+    
+    localStorage.setItem('hoverboard_username', username.trim());
+    localStorage.setItem('hoverboard_avatar', JSON.stringify(avatar));
+
+    socket.emit('create_room', { username: username.trim(), settings: { ...settings, avatar, isSpectator } }, (res) => {
+      if (res.success) {
+        setRoomId(res.roomId);
         setGameState('ROOM');
       } else {
-        alert(response.error);
+        alert(res.error);
       }
     });
   };
@@ -359,7 +374,7 @@ function App() {
                     </div>
                   )}
 
-                  <Hoverboard socket={socket} isArtist={isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} />
+                  <Hoverboard socket={socket} isArtist={myPlayerInfo?.isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} canvasType={room.settings?.canvasType} />
                   
                   {/* Floating Emojis */}
                 {reactions.map((r) => (
@@ -497,17 +512,28 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Word Category</label>
-              <select className="input" value={settings.category} onChange={(e) => setSettings({...settings, category: e.target.value})}>
-                <option value="mixed">Mixed (Everything)</option>
-                <option value="fruits">Fruits</option>
-                <option value="animals">Animals</option>
-                <option value="places">Places</option>
-                <option value="custom">Custom Words</option>
-              </select>
+              <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Word Categories</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px', background: 'var(--glass-bg)', padding: '12px', borderRadius: '16px' }}>
+                {['animals', 'places', 'food', 'objects', 'nature', 'body', 'clothing', 'vehicles', 'sports', 'actions', 'custom'].map(cat => (
+                  <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={settings.categories.includes(cat)} 
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSettings(s => ({
+                          ...s,
+                          categories: checked ? [...s.categories, cat] : s.categories.filter(c => c !== cat)
+                        }));
+                      }} 
+                    />
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </label>
+                ))}
+              </div>
             </div>
             
-            {settings.category === 'custom' && (
+            {settings.categories.includes('custom') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Custom Words (Comma separated)</label>
                 <textarea 
@@ -519,6 +545,14 @@ function App() {
                 />
               </div>
             )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Canvas Type</label>
+              <select className="input" value={settings.canvasType} onChange={(e) => setSettings({...settings, canvasType: e.target.value})}>
+                <option value="hoverboard">Hoverboard (Pixel Grid)</option>
+                <option value="plain">Plain White (No Grid)</option>
+              </select>
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: 'var(--color-primary)', cursor: 'pointer' }}>
@@ -588,7 +622,7 @@ function ChatInput({ socket, disabled }) {
 }
 
 // Highly Optimized Vanilla-style Grid Component inside React
-function Hoverboard({ socket, isArtist, isPlaying, activeMutator }) {
+function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) {
   const containerRef = useRef(null);
   const squaresRef = useRef([]);
   const SQUARES_COUNT = 4800; // 80 cols x 60 rows for wide rectangle
@@ -959,7 +993,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator }) {
 
       <div style={{ width: '100%', height: '100%', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <div 
-          className="hoverboard-container touch-drawing" 
+          className={`hoverboard-container touch-drawing ${canvasType === 'plain' ? 'canvas-plain' : ''}`} 
           ref={containerRef}
           onDragStart={(e) => e.preventDefault()}
           style={{ 

@@ -24,10 +24,16 @@ const rooms = new Map(); // roomId -> { state: 'WAITING', players: [], currentAr
 const users = new Map(); // socketId -> { username, roomId, score }
 
 const WORD_CATEGORIES = {
-  fruits: ['apple', 'banana', 'orange', 'grape', 'mango', 'strawberry', 'watermelon', 'cherry'],
-  animals: ['dog', 'cat', 'elephant', 'tiger', 'lion', 'giraffe', 'penguin', 'dolphin', 'bear'],
-  places: ['hospital', 'school', 'park', 'beach', 'mountain', 'restaurant', 'airport', 'library'],
-  mixed: ['apple', 'house', 'car', 'dog', 'cat', 'sun', 'tree', 'moon', 'star', 'book', 'pizza', 'phone']
+  animals: ['dog', 'cat', 'elephant', 'tiger', 'lion', 'giraffe', 'penguin', 'dolphin', 'bear', 'monkey', 'snake', 'rabbit', 'turtle', 'shark', 'whale', 'spider', 'frog', 'bird', 'owl', 'bat', 'horse', 'cow', 'pig', 'sheep', 'goat', 'duck', 'chicken', 'mouse', 'kangaroo', 'zebra'],
+  places: ['hospital', 'school', 'park', 'beach', 'mountain', 'restaurant', 'airport', 'library', 'bank', 'church', 'castle', 'farm', 'island', 'forest', 'desert', 'cave', 'city', 'village', 'bridge', 'factory', 'zoo', 'museum', 'hotel', 'cinema', 'stadium', 'pool', 'gym', 'office', 'house', 'tent'],
+  food: ['apple', 'banana', 'orange', 'grape', 'mango', 'strawberry', 'watermelon', 'cherry', 'pizza', 'burger', 'hotdog', 'taco', 'sushi', 'cheese', 'bread', 'cake', 'cookie', 'ice cream', 'donut', 'chocolate', 'egg', 'bacon', 'pancake', 'waffle', 'fries', 'popcorn', 'carrot', 'broccoli', 'corn', 'potato'],
+  objects: ['clock', 'chair', 'table', 'bed', 'sofa', 'lamp', 'television', 'computer', 'phone', 'camera', 'book', 'pen', 'pencil', 'scissors', 'knife', 'fork', 'spoon', 'plate', 'cup', 'bottle', 'box', 'key', 'door', 'window', 'mirror', 'comb', 'toothbrush', 'soap', 'towel', 'basket'],
+  nature: ['sun', 'moon', 'star', 'cloud', 'rain', 'snow', 'lightning', 'tree', 'flower', 'grass', 'leaf', 'rock', 'river', 'lake', 'ocean', 'wave', 'fire', 'smoke', 'wind', 'tornado', 'volcano', 'earth', 'planet', 'rainbow', 'meteor', 'sand', 'dirt', 'mud', 'puddle', 'ice'],
+  body: ['head', 'eye', 'ear', 'nose', 'mouth', 'tooth', 'tongue', 'hair', 'neck', 'shoulder', 'arm', 'elbow', 'hand', 'finger', 'thumb', 'chest', 'back', 'stomach', 'leg', 'knee', 'foot', 'toe', 'heel', 'ankle', 'bone', 'heart', 'brain', 'blood', 'skin', 'muscle'],
+  clothing: ['shirt', 't-shirt', 'pants', 'jeans', 'shorts', 'skirt', 'dress', 'jacket', 'coat', 'sweater', 'hoodie', 'suit', 'tie', 'sock', 'shoe', 'boot', 'sneaker', 'sandal', 'hat', 'cap', 'beanie', 'scarf', 'glove', 'mitten', 'belt', 'glasses', 'sunglasses', 'watch', 'ring', 'necklace'],
+  vehicles: ['car', 'truck', 'bus', 'van', 'taxi', 'police car', 'ambulance', 'fire engine', 'motorcycle', 'bicycle', 'scooter', 'skateboard', 'roller skates', 'train', 'subway', 'tram', 'airplane', 'helicopter', 'rocket', 'spaceship', 'boat', 'ship', 'submarine', 'canoe', 'kayak', 'tractor', 'tank', 'bulldozer', 'crane', 'forklift'],
+  sports: ['soccer', 'basketball', 'baseball', 'tennis', 'volleyball', 'golf', 'football', 'rugby', 'cricket', 'hockey', 'boxing', 'wrestling', 'karate', 'judo', 'swimming', 'diving', 'surfing', 'skiing', 'snowboarding', 'skating', 'cycling', 'running', 'jumping', 'gymnastics', 'weightlifting', 'Archery', 'fencing', 'bowling', 'billiards', 'darts'],
+  actions: ['run', 'walk', 'jump', 'skip', 'hop', 'crawl', 'climb', 'swim', 'dive', 'fly', 'dance', 'sing', 'shout', 'whisper', 'cry', 'laugh', 'smile', 'frown', 'sleep', 'wake', 'eat', 'drink', 'cook', 'bake', 'read', 'write', 'draw', 'paint', 'play', 'work']
 };
 
 function generateRoomCode() {
@@ -42,7 +48,8 @@ io.on('connection', (socket) => {
     
     const defaultSettings = {
       maxPlayers: 10,
-      category: 'mixed',
+      categories: ['animals', 'food', 'objects'],
+      canvasType: 'hoverboard',
       timeLimit: 60,
       customWords: '',
       maxRounds: 6,
@@ -90,7 +97,40 @@ io.on('connection', (socket) => {
 
   function joinRoomLogic(socket, username, roomCode, callback, avatar, isSpectator) {
     const room = rooms.get(roomCode);
-    const player = { 
+    
+    // Clear room deletion timeout if it exists
+    if (room.deleteTimeout) {
+      clearTimeout(room.deleteTimeout);
+      room.deleteTimeout = null;
+    }
+
+    let player = room.players.find(p => p.username === username);
+    
+    if (player) {
+      // Reconnection!
+      if (player.disconnectTimeoutId) {
+        clearTimeout(player.disconnectTimeoutId);
+        player.disconnectTimeoutId = null;
+      }
+      
+      // Remove old socket from users map
+      users.delete(player.id);
+      
+      // Update with new socket
+      player.id = socket.id;
+      users.set(socket.id, { username, roomId: roomCode, score: player.score });
+      socket.join(roomCode);
+      
+      io.to(roomCode).emit('room_update', {
+        players: room.players,
+        state: room.state,
+        settings: room.settings
+      });
+      return callback({ success: true, roomId: roomCode });
+    }
+
+    // New Player
+    player = { 
       id: socket.id, 
       username, 
       score: 0, 
@@ -277,17 +317,34 @@ io.on('connection', (socket) => {
     if (user) {
       const room = rooms.get(user.roomId);
       if (room) {
-        room.players = room.players.filter(p => p.id !== socket.id);
-        if (room.players.length === 0) {
-          rooms.delete(user.roomId);
-        } else {
-          io.to(user.roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings });
-          if (room.state !== 'WAITING') {
-            const artist = room.players[room.currentArtistIndex];
-            if (!artist || artist.id === socket.id) {
-              endRound(user.roomId);
+        const player = room.players.find(p => p.id === socket.id);
+        if (player) {
+          player.disconnectTimeoutId = setTimeout(() => {
+            const currentRoom = rooms.get(user.roomId);
+            if (!currentRoom) return;
+            
+            const pIndex = currentRoom.players.findIndex(p => p.id === socket.id);
+            if (pIndex !== -1) {
+              const wasArtist = (currentRoom.state !== 'WAITING' && currentRoom.currentArtistIndex === pIndex);
+              
+              currentRoom.players.splice(pIndex, 1);
+              if (currentRoom.currentArtistIndex >= currentRoom.players.length) {
+                 currentRoom.currentArtistIndex = 0;
+              }
+              
+              if (currentRoom.players.length === 0) {
+                // Empty room cleanup in 10 minutes
+                currentRoom.deleteTimeout = setTimeout(() => {
+                  rooms.delete(user.roomId);
+                }, 10 * 60 * 1000);
+              } else {
+                io.to(user.roomId).emit('room_update', { players: currentRoom.players, state: currentRoom.state, settings: currentRoom.settings });
+                if (wasArtist) {
+                  endRound(user.roomId);
+                }
+              }
             }
-          }
+          }, 5000); // 5 seconds grace period
         }
       }
       users.delete(socket.id);
@@ -341,13 +398,20 @@ function beginDrawingPhase(roomId) {
   const room = rooms.get(roomId);
   if (!room) return;
   
-  let categoryWords = WORD_CATEGORIES[room.settings.category] || WORD_CATEGORIES.mixed;
+  let categoryWords = [];
+  if (room.settings.categories && Array.isArray(room.settings.categories)) {
+    room.settings.categories.forEach(cat => {
+      if (WORD_CATEGORIES[cat]) {
+        categoryWords = categoryWords.concat(WORD_CATEGORIES[cat]);
+      } else if (cat === 'custom' && room.settings.customWords) {
+        const customList = room.settings.customWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
+        categoryWords = categoryWords.concat(customList);
+      }
+    });
+  }
   
-  if (room.settings.category === 'custom' && room.settings.customWords && room.settings.customWords.trim().length > 0) {
-    const customList = room.settings.customWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
-    if (customList.length > 0) {
-      categoryWords = customList;
-    }
+  if (categoryWords.length === 0) {
+    categoryWords = WORD_CATEGORIES.animals.concat(WORD_CATEGORIES.food, WORD_CATEGORIES.objects);
   }
 
   const word = categoryWords[Math.floor(Math.random() * categoryWords.length)];

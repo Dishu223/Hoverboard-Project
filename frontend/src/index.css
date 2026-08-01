@@ -60,7 +60,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden; /* Disable scrolling */
+  overflow-x: hidden; /* Allow vertical scrolling for main menu, prevent horizontal */
 }
 
 /* Floating animated background elements */
@@ -240,6 +240,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .input::placeholder {
   color: #94a3b8;
+}
+
+[data-theme='dark'] .input, [data-theme='dark'] select.input {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .input:focus {
+  border-color: var(--color-primary);
 }
 
 /* Cute Title */
@@ -457,10 +467,13 @@ h1, h2, h3, h4, h5, h6 {
   display: grid;
   grid-template-columns: repeat(80, 1fr);
   grid-template-rows: repeat(60, 1fr);
-  width: 100%;
-  height: auto;
+  
+  /* Perfect responsive scaling */
+  height: 100%;
+  max-width: 100%;
   aspect-ratio: 80 / 60;
-  max-height: 100%;
+  
+  /* Styling */
   background: rgba(255,255,255,0.4); /* Glass backdrop */
   backdrop-filter: blur(12px);
   border: 4px solid white;
@@ -485,6 +498,18 @@ h1, h2, h3, h4, h5, h6 {
   transform: scale(1.1); /* Pop out slightly */
   z-index: 10;
   position: relative;
+}
+
+.canvas-plain .square {
+  box-shadow: none !important;
+}
+
+.canvas-plain {
+  background: white !important;
+  border: 4px solid var(--color-primary) !important;
+}
+[data-theme='dark'] .canvas-plain {
+  background: #1e293b !important;
 }
 
 /* Override the App.jsx inline style in hoverboard toolbar */
