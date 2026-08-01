@@ -45,7 +45,8 @@ function AvatarCreator({ avatar, setAvatar }) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
       <label style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '0.9rem' }}>Draw your Avatar!</label>
       <div 
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', width: '128px', height: '128px', border: '2px solid var(--color-primary)', cursor: 'crosshair' }}
+        className="touch-drawing"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', width: '128px', height: '128px', border: '2px solid var(--color-primary)', cursor: 'crosshair', touchAction: 'none' }}
         onMouseDown={() => setIsMouseDown(true)}
         onMouseUp={() => setIsMouseDown(false)}
         onMouseLeave={() => setIsMouseDown(false)}
@@ -385,7 +386,7 @@ function App() {
               )}
             </div>
 
-            <div className="sidebar card" style={{ width: '300px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+            <div className="sidebar card chat-sidebar">
               <h4 style={{ marginBottom: '8px', color: 'var(--color-secondary)' }}>Chat ({roomId})</h4>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
@@ -958,7 +959,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator }) {
 
       <div style={{ width: '100%', height: '100%', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <div 
-          className="hoverboard-container" 
+          className="hoverboard-container touch-drawing" 
           ref={containerRef}
           onDragStart={(e) => e.preventDefault()}
           style={{ 

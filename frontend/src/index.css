@@ -512,3 +512,39 @@ select.input {
   box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
 }
+
+/* --- Mobile Responsive Layout --- */
+.touch-drawing {
+  touch-action: none !important;
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-y: auto; /* Allow scrolling the page outside the canvas */
+  }
+
+  .game-room {
+    flex-direction: column;
+    height: auto;
+    padding: 0 8px;
+    gap: 8px;
+  }
+
+  .game-room > .sidebar {
+    width: 100% !important;
+    max-width: 100%;
+    flex: none;
+    max-height: 350px;
+  }
+
+  .game-room > .main-board {
+    flex: none;
+    width: 100% !important;
+    height: 55vh;
+    min-height: 350px;
+  }
+
+  .container {
+    padding: 16px 8px;
+  }
+}
