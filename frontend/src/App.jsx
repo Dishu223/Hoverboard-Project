@@ -316,7 +316,7 @@ function App() {
 
   if (gameState === 'ROOM') {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', width: '100%', boxSizing: 'border-box' }}>
           
           {/* Top Bar */}
           <div className="top-bar">
@@ -626,7 +626,7 @@ function App() {
           <div className="card" style={{ maxWidth: '800px', width: '100%' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Room Settings</h2>
           <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+            <div className="intro-grid">
               
               {/* Left Column */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
