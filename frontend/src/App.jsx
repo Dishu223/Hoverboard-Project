@@ -571,7 +571,7 @@ function App() {
       <h1 className="neon-text" style={{ fontSize: '3rem', marginBottom: '2rem', textAlign: 'center' }}>Lumynati</h1>
       
       {gameState === 'LANDING' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           <button className="btn-secondary" style={{ position: 'absolute', top: '16px', right: '16px', borderRadius: '50%', padding: '12px', background: 'var(--glass-bg)' }} onClick={toggleTheme} title="Toggle Theme">
             {document.body.getAttribute('data-theme') === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -619,7 +619,7 @@ function App() {
       )}
 
       {gameState === 'INTRO' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           <button className="btn-secondary" style={{ position: 'absolute', top: '16px', right: '16px', borderRadius: '50%', padding: '12px', background: 'var(--glass-bg)' }} onClick={toggleTheme} title="Toggle Theme">
             {document.body.getAttribute('data-theme') === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
