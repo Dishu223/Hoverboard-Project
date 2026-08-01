@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
+    "hoverboard-game": "file:..",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",

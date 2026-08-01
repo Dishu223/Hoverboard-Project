@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { Send, Eraser, Camera, Moon, Sun, LogOut, Menu, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import { playSFX } from './audio';
+import { playSFX, toggleSound } from './audio';
 import confetti from 'canvas-confetti';
 import './App.css';
 import { CanvasBoard } from './components/CanvasBoard';
@@ -118,9 +118,11 @@ function App() {
   const ALL_EMOJIS = ['❤️', '😂', '😮', '🤔', '🔥', '🎉', '🤡', '💀', '😭', '👀', '👍', '👎', '✨', '💯', '💩', '😎'];
   const [myEmojis, setMyEmojis] = useState(['❤️', '😂', '😮', '🤔', '🔥', '🎉']);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojiColumn, setShowEmojiColumn] = useState(false);
   const [wordSelection, setWordSelection] = useState(null); // { words: [], shufflesRemaining: 3, customDrawMode: boolean }
   const [customDrawWord, setCustomDrawWord] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSoundOn, setIsSoundOn] = useState(true);
   
   const chatContainerRef = useRef(null);
 
@@ -481,29 +483,43 @@ function App() {
           {isMobileMenuOpen && (
             <div className="mobile-menu-overlay">
               <div className="mobile-menu-content card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                   <h2 className="neon-text" style={{ fontSize: '1.5rem', margin: 0 }}>Menu</h2>
                   <button className="btn-secondary" onClick={() => setIsMobileMenuOpen(false)} style={{ padding: '8px', borderRadius: '50%' }}>
                     <X size={20} />
                   </button>
                 </div>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px' }}>
-                  <span style={{ fontWeight: 'bold' }}>Room Code:</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: '1.2rem', letterSpacing: '1px', color: 'var(--color-primary)' }}>{roomId}</span>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <button className="btn-secondary" onClick={toggleTheme} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />} Theme
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button 
+                    className="btn-secondary" 
+                    onClick={() => {
+                      alert("How to Play:\n\n1. Draw the given word if you are the artist.\n2. Type your guesses in the chat if you are a guesser.\n3. Guess quickly to earn more points!\n4. Have fun!");
+                      setIsMobileMenuOpen(false);
+                    }} 
+                    style={{ padding: '16px', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold' }}
+                  >
+                    📖 How to Play
                   </button>
-                  <button className="btn-secondary" onClick={handleLeaveRoom} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', background: '#ef4444', color: 'white', border: 'none' }}>
-                    <LogOut size={16} /> Leave
+                  
+                  <button 
+                    className="btn-secondary" 
+                    onClick={() => setIsSoundOn(toggleSound())} 
+                    style={{ padding: '16px', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold' }}
+                  >
+                    {isSoundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF'}
                   </button>
-                </div>
-                
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                  {renderPlayersList()}
+                  
+                  <button 
+                    className="btn-secondary" 
+                    onClick={() => {
+                      window.location.href = "mailto:lumynati@example.com?subject=Hoverboard Bug Report";
+                      setIsMobileMenuOpen(false);
+                    }} 
+                    style={{ padding: '16px', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold' }}
+                  >
+                    🐛 Report Bug
+                  </button>
                 </div>
               </div>
             </div>
@@ -583,10 +599,10 @@ function App() {
                     </div>
                   )}
 
-                  {room.settings?.canvasType === 'plain' ? (
+                  { (room?.settings?.canvasType || settings.canvasType) === 'plain' ? (
                     <CanvasBoard socket={socket} isArtist={myPlayerInfo?.isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} />
                   ) : (
-                    <Hoverboard socket={socket} isArtist={myPlayerInfo?.isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} canvasType={room.settings?.canvasType} />
+                    <Hoverboard socket={socket} isArtist={myPlayerInfo?.isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} canvasType={room?.settings?.canvasType || settings.canvasType} />
                   )}
                   
                   {/* Floating Emojis */}
@@ -621,11 +637,17 @@ function App() {
               </button>
               <button 
                 className="emoji-btn" 
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                onClick={() => setShowEmojiColumn(!showEmojiColumn)}
               >
                 <span className="icon">😀</span>
               </button>
             </div>
+
+            {/* Bottom Sheet Overlay */}
+            <div 
+              className={`bottom-sheet-overlay ${activeMobileTab !== 'draw' ? 'open' : ''}`} 
+              onClick={() => setActiveMobileTab('draw')} 
+            />
 
             {/* Bottom Sheet for Mobile */}
             <div className={`bottom-sheet ${activeMobileTab !== 'draw' ? 'open' : ''}`}>
@@ -683,7 +705,7 @@ function App() {
             </div>
 
             {/* Mobile Vertical Emojis (Right side) */}
-            {showEmojiPicker && (
+            {showEmojiColumn && (
                <div className="mobile-vertical-emojis">
                  <div className="mobile-reactions-vertical">
                    {renderReactions()}
@@ -1006,17 +1028,12 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
   // Drawing options state
   const [selectedColor, setSelectedColor] = useState('#1d1d1d');
   const [customColor, setCustomColor] = useState('#000000');
-  const [isPermanent, setIsPermanent] = useState(true);
-  const [drawMode, setDrawMode] = useState('click'); // 'hover', 'click', or 'none'
   const [activeTool, setActiveTool] = useState('brush'); // 'brush', 'eraser', 'fill'
   const [brushSize, setBrushSize] = useState(1); // 1, 3, 5
-  const [canOverwrite, setCanOverwrite] = useState(true);
   const [isBlindfolded, setIsBlindfolded] = useState(false);
   
   const isMouseDownRef = useRef(false);
   const boardStateRef = useRef(new Array(SQUARES_COUNT).fill('rgba(255, 255, 255, 0.7)'));
-  const undoStackRef = useRef([]);
-  const redoStackRef = useRef([]);
 
   // Cute pastel palette with names
   const colors = [
@@ -1040,13 +1057,13 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
   // Use refs to avoid stale closures in vanilla event listeners
   const isArtistRef = useRef(isArtist);
   const isPlayingRef = useRef(isPlaying);
-  const optsRef = useRef({ selectedColor, isPermanent, drawMode, activeTool, brushSize, canOverwrite, activeMutator });
+  const optsRef = useRef({ selectedColor, activeTool, brushSize, activeMutator });
 
   useEffect(() => {
     isArtistRef.current = isArtist;
     isPlayingRef.current = isPlaying;
-    optsRef.current = { selectedColor, isPermanent, drawMode, activeTool, brushSize, canOverwrite, activeMutator };
-  }, [isArtist, isPlaying, selectedColor, isPermanent, drawMode, activeTool, brushSize, canOverwrite, activeMutator]);
+    optsRef.current = { selectedColor, activeTool, brushSize, activeMutator };
+  }, [isArtist, isPlaying, selectedColor, activeTool, brushSize, activeMutator]);
 
   useEffect(() => {
     if (activeMutator === 'blindfold' && isPlaying && isArtist) {
@@ -1060,18 +1077,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
   }, [activeMutator, isPlaying, isArtist]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isArtistRef.current || !isPlayingRef.current) return;
-      if (e.ctrlKey && e.key === 'z') {
-        e.preventDefault();
-        handleUndo();
-      } else if (e.ctrlKey && e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Shortcuts removed
   }, [isArtist, isPlaying]);
 
   useEffect(() => {
@@ -1109,20 +1115,14 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
         }
       };
 
-      const saveState = () => {
-        undoStackRef.current.push([...boardStateRef.current]);
-        if (undoStackRef.current.length > 30) undoStackRef.current.shift();
-        redoStackRef.current = [];
-      };
-
       containerRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
       containerRef.current.addEventListener('touchend', () => { isMouseDownRef.current = false; });
       
-      containerRef.current.addEventListener('mousedown', () => { saveState(); isMouseDownRef.current = true; });
+      containerRef.current.addEventListener('mousedown', () => { isMouseDownRef.current = true; });
       containerRef.current.addEventListener('mouseup', () => { isMouseDownRef.current = false; });
       containerRef.current.addEventListener('mouseleave', () => { isMouseDownRef.current = false; });
       containerRef.current.addEventListener('mouseenter', () => {
-        if (optsRef.current.drawMode === 'hover') saveState();
+        // removed saveState for hover
       });
     }
 
@@ -1146,8 +1146,6 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
         sq.style.background = def;
         boardStateRef.current[idx] = def;
       });
-      undoStackRef.current = [];
-      redoStackRef.current = [];
     };
 
     const onBoardState = (state) => {
@@ -1202,33 +1200,11 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
     }
   };
 
-  const handleUndo = () => {
-    if (undoStackRef.current.length === 0) return;
-    redoStackRef.current.push([...boardStateRef.current]);
-    const prevState = undoStackRef.current.pop();
-    boardStateRef.current = [...prevState];
-    squaresRef.current.forEach((sq, idx) => sq.style.background = prevState[idx]);
-    socket.emit('board_state', prevState);
-  };
-
-  const handleRedo = () => {
-    if (redoStackRef.current.length === 0) return;
-    undoStackRef.current.push([...boardStateRef.current]);
-    const nextState = redoStackRef.current.pop();
-    boardStateRef.current = [...nextState];
-    squaresRef.current.forEach((sq, idx) => sq.style.background = nextState[idx]);
-    socket.emit('board_state', nextState);
-  };
-
   const handleHover = (index, isClick = false) => {
     if (!isArtistRef.current || !isPlayingRef.current) return;
-    const { drawMode, selectedColor, isPermanent, activeTool, brushSize, canOverwrite, activeMutator } = optsRef.current;
+    const { selectedColor, activeTool, brushSize, activeMutator } = optsRef.current;
     
-    if (drawMode === 'none') return;
-    
-    if (drawMode === 'click') {
-      if (!isClick && !isMouseDownRef.current) return;
-    }
+    if (!isClick && !isMouseDownRef.current) return;
     
     let color = selectedColor === 'random' ? getRandomColor() : selectedColor;
     
@@ -1237,7 +1213,6 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
     }
 
     if (activeTool === 'fill' && isClick) {
-       undoStackRef.current.push([...boardStateRef.current]);
        const targetColor = boardStateRef.current[index];
        if (targetColor === color) return;
        
@@ -1282,9 +1257,8 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
              const sqIdx = nr * COLS + nc;
              
-             // Overwrite logic check
              const isDefault = boardStateRef.current[sqIdx] === 'rgba(255, 255, 255, 0.7)';
-             if (activeTool === 'eraser' || canOverwrite || isDefault) {
+             if (activeTool === 'eraser' || true) { // Always overwrite for simplicity
                indicesToDraw.push(sqIdx);
                
                if (activeMutator === 'symmetry') {
@@ -1296,8 +1270,8 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
          }
        }
        
-       indicesToDraw.forEach(idx => setColor(squaresRef.current[idx], color, isPermanent, idx));
-       hoverBufferRef.current.push([indicesToDraw, color, isPermanent]);
+       indicesToDraw.forEach(idx => setColor(squaresRef.current[idx], color, true, idx)); // Always permanent
+       hoverBufferRef.current.push([indicesToDraw, color, true]);
      }
   };
 
@@ -1350,18 +1324,6 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
            </div>
            
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontWeight: 'bold' }}>Style:</span>
-              <button className={isPermanent ? "btn-primary" : "btn-secondary"} style={{ padding: '6px 16px', fontSize: '0.8rem' }} onClick={() => setIsPermanent(true)}>Permanent</button>
-              <button className={!isPermanent ? "btn-primary" : "btn-secondary"} style={{ padding: '6px 16px', fontSize: '0.8rem' }} onClick={() => setIsPermanent(false)}>Trail</button>
-           </div>
-
-           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontWeight: 'bold' }}>Draw Mode:</span>
-              <button className={drawMode === 'hover' ? "btn-primary" : "btn-secondary"} style={{ padding: '6px 16px', fontSize: '0.8rem' }} onClick={() => setDrawMode(drawMode === 'hover' ? 'none' : 'hover')}>Hover</button>
-              <button className={drawMode === 'click' ? "btn-primary" : "btn-secondary"} style={{ padding: '6px 16px', fontSize: '0.8rem' }} onClick={() => setDrawMode(drawMode === 'click' ? 'none' : 'click')}>Click & Drag</button>
-           </div>
-           
-           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontWeight: 'bold' }}>Brush:</span>
               <select className="input" style={{ padding: '6px 12px', fontSize: '0.8rem' }} value={brushSize} onChange={(e) => setBrushSize(parseInt(e.target.value))}>
                 <option value="1">Small</option>
@@ -1381,17 +1343,11 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
            </div>
            
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-              <button className={canOverwrite ? "btn-primary" : "btn-secondary"} style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setCanOverwrite(!canOverwrite)} title="Toggle Overwriting existing colors">
-                Overwrite: {canOverwrite ? 'ON' : 'OFF'}
+              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', color: '#F472B6', borderColor: '#F472B6' }} onClick={() => socket.emit('clear_board')} title="Clear Canvas">
+                Clear
               </button>
               <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={handleSnapshot} title="Download Image">
                 <Camera size={14} />
-              </button>
-              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={handleUndo} title="Undo (Ctrl+Z)">
-                Undo
-              </button>
-              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={handleRedo} title="Redo (Ctrl+Y)">
-                Redo
               </button>
            </div>
         </div>

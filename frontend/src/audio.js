@@ -28,7 +28,15 @@ const playTone = (freq, type, duration, vol = 0.1) => {
   osc.stop(audioCtx.currentTime + duration);
 };
 
+export let isSoundEnabled = true;
+
+export const toggleSound = () => {
+  isSoundEnabled = !isSoundEnabled;
+  return isSoundEnabled;
+};
+
 export const playSFX = (effect) => {
+  if (!isSoundEnabled) return;
   initAudio();
   
   switch (effect) {

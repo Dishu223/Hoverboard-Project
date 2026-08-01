@@ -15,9 +15,8 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
 
   const isMouseDownRef = useRef(false);
   const lastPosRef = useRef(null);
-  const undoStackRef = useRef([]);
-  const redoStackRef = useRef([]);
   const strokeBufferRef = useRef([]);
+  const hasInitializedRef = useRef(false);
 
   const colors = [
     { name: 'Pastel Pink', hex: '#FF9CEE' },
@@ -59,17 +58,11 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
     const ctx = canvas.getContext('2d');
     
     // Set initial background
-    if (!undoStackRef.current.length) {
+    if (!hasInitializedRef.current) {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      undoStackRef.current.push(canvas.toDataURL());
+      hasInitializedRef.current = true;
     }
-
-    const saveState = () => {
-      undoStackRef.current.push(canvas.toDataURL());
-      if (undoStackRef.current.length > 30) undoStackRef.current.shift();
-      redoStackRef.current = [];
-    };
 
     const getMousePos = (e) => {
       const rect = canvas.getBoundingClientRect();
@@ -147,7 +140,6 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
     const handleStart = (e) => {
       if (!isArtist || !isPlaying) return;
       e.preventDefault();
-      saveState();
       
       const { activeTool, selectedColor, customColor } = optsRef.current;
       if (activeTool === 'fill') {
@@ -246,8 +238,6 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
 
     const onClear = () => {
       applyDrawEvent({ type: 'clear' });
-      undoStackRef.current = [canvasRef.current.toDataURL()];
-      redoStackRef.current = [];
     };
 
     if (socket) {
@@ -287,43 +277,8 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
     };
   }, [socket, isArtist, isPlaying]);
 
-  const handleUndo = () => {
-    if (undoStackRef.current.length > 0) {
-      const currentState = canvasRef.current.toDataURL();
-      redoStackRef.current.push(currentState);
-      const previousState = undoStackRef.current.pop();
-      
-      const img = new Image();
-      img.onload = () => {
-        const ctx = canvasRef.current.getContext('2d');
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        ctx.drawImage(img, 0, 0);
-        if (socket) socket.emit('board_state', previousState);
-      };
-      img.src = previousState;
-    }
-  };
-
-  const handleRedo = () => {
-    if (redoStackRef.current.length > 0) {
-      const currentState = canvasRef.current.toDataURL();
-      undoStackRef.current.push(currentState);
-      const nextState = redoStackRef.current.pop();
-      
-      const img = new Image();
-      img.onload = () => {
-        const ctx = canvasRef.current.getContext('2d');
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        ctx.drawImage(img, 0, 0);
-        if (socket) socket.emit('board_state', nextState);
-      };
-      img.src = nextState;
-    }
-  };
-
   const handleClear = () => {
     if (!isArtist || !isPlaying) return;
-    undoStackRef.current.push(canvasRef.current.toDataURL());
     const ctx = canvasRef.current.getContext('2d');
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -347,18 +302,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
   };
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isArtist || !isPlaying) return;
-      if (e.ctrlKey && e.key === 'z') {
-        e.preventDefault();
-        handleUndo();
-      } else if (e.ctrlKey && e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Shortcuts removed
   }, [isArtist, isPlaying]);
 
   return (
@@ -419,12 +363,6 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
               </button>
               <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={handleSnapshot} title="Download Image">
                 <Camera size={14} />
-              </button>
-              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={handleUndo} title="Undo (Ctrl+Z)">
-                Undo
-              </button>
-              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={handleRedo} title="Redo (Ctrl+Y)">
-                Redo
               </button>
            </div>
         </div>

@@ -951,6 +951,25 @@ select.input {
     box-shadow: 0 0 8px var(--color-primary);
   }
 
+  .bottom-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    z-index: 998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  .bottom-sheet-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   /* Bottom Sheets */
   .bottom-sheet {
     position: fixed;
@@ -996,8 +1015,21 @@ select.input {
   .bottom-sheet-content {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 0; /* Remove padding to let children span full width */
     padding-bottom: 80px; /* clear bottom nav */
+  }
+  
+  .bottom-sheet-content > * {
+    width: 100%;
+    height: 100%;
+  }
+
+  .bottom-sheet-content .card {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 16px;
   }
 
   /* Vertical Emojis */
