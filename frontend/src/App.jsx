@@ -999,13 +999,21 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
     socket?.on('draw_batch', onDraw);
     socket?.on('clear_board', onClear);
     socket?.on('board_state', onBoardState);
+    
+    const onRequestBoardState = () => {
+      if (isArtist && isPlaying) {
+        socket.emit('board_state', boardStateRef.current);
+      }
+    };
+    socket?.on('request_board_state', onRequestBoardState);
 
     return () => {
       socket?.off('draw_batch', onDraw);
       socket?.off('clear_board', onClear);
       socket?.off('board_state', onBoardState);
+      socket?.off('request_board_state', onRequestBoardState);
     };
-  }, [socket]);
+  }, [socket, isArtist, isPlaying]);
 
   const handleSnapshot = () => {
     if (containerRef.current) {

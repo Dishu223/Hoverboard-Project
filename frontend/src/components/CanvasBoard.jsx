@@ -82,11 +82,6 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
     const emitDraw = (type, data) => {
       if (socket && isArtist && isPlaying) {
         socket.emit('draw_batch', { type, ...data, isCanvas: true });
-        
-        // Sync full board state occasionally for late joiners
-        if (Math.random() < 0.05) {
-          socket.emit('board_state', canvas.toDataURL());
-        }
       }
     };
 
@@ -219,6 +214,11 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
       socket.on('draw_batch', onDrawBatch);
       socket.on('board_state', onBoardState);
       socket.on('clear_board', onClear);
+      socket.on('request_board_state', () => {
+        if (isArtistRef.current && isPlayingRef.current && canvasRef.current) {
+          socket.emit('board_state', canvasRef.current.toDataURL());
+        }
+      });
     }
 
     return () => {
@@ -233,6 +233,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
         socket.off('draw_batch', onDrawBatch);
         socket.off('board_state', onBoardState);
         socket.off('clear_board', onClear);
+        socket.off('request_board_state');
       }
     };
   }, [socket, isArtist, isPlaying]);

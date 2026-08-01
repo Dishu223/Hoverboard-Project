@@ -137,6 +137,14 @@ io.on('connection', (socket) => {
           socket.emit('word_to_draw', room.currentWord);
         } else {
           socket.emit('word_hint', hint);
+          
+          // Request current board state from the artist for this rejoining player
+          if (room.currentArtistIndex !== -1) {
+            const currentArtist = room.players[room.currentArtistIndex];
+            if (currentArtist && currentArtist.id !== socket.id) {
+              io.to(currentArtist.id).emit('request_board_state');
+            }
+          }
         }
       }
       return callback({ success: true, roomId: roomCode });
@@ -162,6 +170,19 @@ io.on('connection', (socket) => {
       state: room.state,
       settings: room.settings
     });
+    
+    // If the room is already in DRAWING state, send the hint and request board state
+    if (room.state === 'DRAWING') {
+      const hint = room.currentWord.replace(/[a-zA-Z]/g, '_ ').trim();
+      socket.emit('word_hint', hint);
+      
+      if (room.currentArtistIndex !== -1) {
+        const currentArtist = room.players[room.currentArtistIndex];
+        if (currentArtist && currentArtist.id !== socket.id) {
+          io.to(currentArtist.id).emit('request_board_state');
+        }
+      }
+    }
     
     callback({ success: true, roomId: roomCode });
   }
