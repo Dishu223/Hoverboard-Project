@@ -657,15 +657,43 @@ function App() {
                 <ChatInput socket={socket} disabled={isArtist && room.state === 'DRAWING'} />
               </div>
             </div>
-            
-            <div className="mobile-reactions">
-              {renderReactions()}
+          </div>
+        )}
+                {activeMobileTab === 'players' && (
+                  <div className="mobile-players-sheet" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                     {renderPlayersList()}
+                  </div>
+                )}
+                {activeMobileTab === 'settings' && (
+                  <div className="mobile-settings-sheet" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
+                    <h2 className="neon-text" style={{ margin: 0 }}>Settings</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--glass-bg)', borderRadius: '12px' }}>
+                      <span style={{ fontWeight: 'bold' }}>Room Code:</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: '1.2rem', color: 'var(--color-primary)' }}>{roomId}</span>
+                    </div>
+                    <button className="btn-secondary" onClick={toggleTheme} style={{ padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                      {document.body.getAttribute('data-theme') === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                    </button>
+                    <button className="btn-secondary" onClick={handleLeaveRoom} style={{ padding: '16px', borderRadius: '12px', background: '#ef4444', color: 'white', border: 'none', fontWeight: 'bold' }}>
+                      🚪 Leave Game
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Mobile Vertical Emojis (Right side) */}
+            {showEmojiPicker && (
+               <div className="mobile-vertical-emojis">
+                 <div className="mobile-reactions-vertical">
+                   {renderReactions()}
+                 </div>
+               </div>
+            )}
             
             {renderStartButtonMobile()}
           </div>
         </div>
-      </div>
     );
   }
 
