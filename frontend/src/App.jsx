@@ -316,19 +316,19 @@ function App() {
 
   if (gameState === 'ROOM') {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100vw', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', boxSizing: 'border-box' }}>
           
           {/* Top Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.5)', zIndex: 10 }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="top-bar">
+            <div className="top-bar-left">
               <h2 className="neon-text" style={{ fontSize: '1.8rem', margin: 0 }}>Lumynati</h2>
-              <div style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--color-primary)', padding: '6px 16px', borderRadius: '12px', fontWeight: 'bold', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '1.1rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--color-primary)', padding: '6px 16px', borderRadius: '12px', fontWeight: 'bold', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
                 Room Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '1.3rem' }}>{roomId}</span>
               </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--color-primary)' }}>
+            <div className="top-bar-center">
+              <div style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--color-primary)', textAlign: 'center' }}>
                 {room.state === 'WAITING' ? 'Waiting Area' : (isArtist ? <span>Draw: <span style={{ color: 'white', background: 'var(--color-primary)', padding: '4px 12px', borderRadius: '12px', letterSpacing: '2px', textTransform: 'uppercase', boxShadow: '0 0 10px var(--color-primary)' }}>{currentWord}</span></span> : (wordHint ? `Hint: ${wordHint}` : `Guess what ${artistName} is drawing!`))}
                 {activeMutator !== 'none' && room.state === 'DRAWING' && (
                   <span style={{ marginLeft: '12px', fontSize: '1rem', color: '#ef4444', background: '#fef2f2', padding: '2px 8px', borderRadius: '12px', border: '1px solid #fca5a5' }}>
@@ -353,8 +353,7 @@ function App() {
               )}
             </div>
 
-            <div style={{ minWidth: '150px', textAlign: 'right', flex: 1, display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-
+            <div className="top-bar-right">
               <button className="btn-secondary" onClick={toggleTheme} style={{ padding: '8px', borderRadius: '50%' }} title="Toggle Theme">
                 {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
