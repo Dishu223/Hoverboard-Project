@@ -611,3 +611,36 @@ select.input {
     padding: 16px 8px;
   }
 }
+
+.color-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.color-btn:hover {
+  transform: scale(1.15);
+}
+.color-btn.selected {
+  border: 2px solid var(--color-text);
+  transform: scale(1.2);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.chat-sidebar {
+  max-width: 280px !important;
+  width: 280px !important;
+}
+
+@keyframes wobble-timer {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(-3deg); }
+  50% { transform: scale(1.15) rotate(3deg); text-shadow: 0 0 15px rgba(239,68,68,0.8); }
+  75% { transform: scale(1.1) rotate(-3deg); }
+}
+.timer-warning-anim {
+  animation: wobble-timer 0.5s infinite ease-in-out;
+}

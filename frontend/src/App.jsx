@@ -307,13 +307,13 @@ function App() {
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
               <h2 className="neon-text" style={{ fontSize: '1.8rem', margin: 0 }}>Lumynati</h2>
               <div style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--color-primary)', padding: '6px 16px', borderRadius: '12px', fontWeight: 'bold', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '1.1rem' }}>
-                Room Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '1.3rem' }}>{room.id}</span>
+                Room Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '1.3rem' }}>{roomId}</span>
               </div>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1, justifyContent: 'center' }}>
               <div style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--color-primary)' }}>
-                {room.state === 'WAITING' ? 'Waiting Area' : (isArtist ? `Draw: ${currentWord}` : (wordHint ? `Hint: ${wordHint}` : `Guess what ${artistName} is drawing!`))}
+                {room.state === 'WAITING' ? 'Waiting Area' : (isArtist ? <span>Draw: <span style={{ color: 'white', background: 'var(--color-primary)', padding: '4px 12px', borderRadius: '12px', letterSpacing: '2px', textTransform: 'uppercase', boxShadow: '0 0 10px var(--color-primary)' }}>{currentWord}</span></span> : (wordHint ? `Hint: ${wordHint}` : `Guess what ${artistName} is drawing!`))}
                 {activeMutator !== 'none' && room.state === 'DRAWING' && (
                   <span style={{ marginLeft: '12px', fontSize: '1rem', color: '#ef4444', background: '#fef2f2', padding: '2px 8px', borderRadius: '12px', border: '1px solid #fca5a5' }}>
                     Chaos: {activeMutator === 'symmetry' ? 'Symmetry' : activeMutator === 'blindfold' ? 'Blindfold' : 'Upside Down'}
@@ -322,14 +322,14 @@ function App() {
               </div>
               
               {room.state === 'DRAWING' && (
-                <div style={{ 
-                  background: timeLeft <= 10 ? '#ef4444' : 'var(--glass-bg)', 
-                  color: timeLeft <= 10 ? 'white' : 'var(--color-primary)', 
+                <div className={timeLeft <= 15 ? 'timer-warning-anim' : ''} style={{ 
+                  background: timeLeft <= 15 ? '#ef4444' : 'var(--glass-bg)', 
+                  color: timeLeft <= 15 ? 'white' : 'var(--color-primary)', 
                   padding: '6px 20px', 
                   borderRadius: '20px', 
                   fontWeight: '900', 
                   fontSize: '1.5rem',
-                  boxShadow: timeLeft <= 10 ? '0 0 10px rgba(239,68,68,0.5)' : 'none',
+                  boxShadow: timeLeft <= 15 ? '0 0 20px rgba(239,68,68,0.8)' : 'none',
                   transition: 'all 0.3s'
                 }}>
                   ⏱ {timeLeft}s
@@ -489,7 +489,7 @@ function App() {
                     </button>
                   </div>
                   {showEmojiPicker && (
-                    <div className="card" style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: '8px', width: 'max-content', maxWidth: '300px', justifyContent: 'center', padding: '16px', border: '1px solid var(--color-primary)' }}>
+                    <div className="card" style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: '8px', width: 'max-content', maxWidth: '300px', maxHeight: '50vh', overflowY: 'auto', justifyContent: 'center', padding: '16px', border: '1px solid var(--color-primary)' }}>
                       <div style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-primary)', marginBottom: '8px', fontWeight: 'bold' }}>Select up to 6 emojis</div>
                       {ALL_EMOJIS.map(emoji => {
                         const isSelected = myEmojis.includes(emoji);
