@@ -1259,7 +1259,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', flex: 1, minHeight: 0 }}>
       {isArtist && isPlaying && (
         <div className="artist-toolbar">
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

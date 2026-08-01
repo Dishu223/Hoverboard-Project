@@ -358,7 +358,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
   }, [isArtist, isPlaying]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {isArtist && isPlaying && (
          <div style={{ padding: '12px 24px', background: 'var(--glass-bg)', backdropFilter: 'blur(16px)', borderRadius: '24px', marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '20px', border: '1px solid rgba(255,255,255,0.8)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)', justifyContent: 'center' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxWidth: '320px', justifyContent: 'center', borderRight: '1px solid var(--glass-border)', paddingRight: '20px' }}>

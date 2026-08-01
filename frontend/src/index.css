@@ -631,7 +631,7 @@ select.input {
 }
 
 /* Desktop/Mobile specific classes */
-.mobile-reactions { display: flex !important; flex-direction: column; justify-content: space-evenly; width: 60px; height: 100%; border-left: 1px solid var(--border-color); padding-left: 8px; display: none; }
+.mobile-reactions { display: none !important; }
 .mobile-only-start { display: none; }
 .desktop-reactions .reaction-buttons-wrapper {
   display: flex;

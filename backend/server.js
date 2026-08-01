@@ -23,6 +23,19 @@ const io = new Server(server, {
 const rooms = new Map(); // roomId -> { state: 'WAITING', players: [], currentArtistIndex: -1, currentWord: '', timer: 0, settings: {} }
 const users = new Map(); // socketId -> { username, roomId, score }
 
+function getSanitizedRoom(room) {
+  if (!room) return {};
+  return {
+    players: room.players.map(p => {
+      const { disconnectTimeoutId, ...rest } = p;
+      return rest;
+    }),
+    state: room.state,
+    settings: room.settings,
+    currentRound: room.currentRound
+  };
+}
+
 const WORD_CATEGORIES = {
   animals: ['dog', 'cat', 'elephant', 'tiger', 'lion', 'giraffe', 'penguin', 'dolphin', 'bear', 'monkey', 'snake', 'rabbit', 'turtle', 'shark', 'whale', 'spider', 'frog', 'bird', 'owl', 'bat', 'horse', 'cow', 'pig', 'sheep', 'goat', 'duck', 'chicken', 'mouse', 'kangaroo', 'zebra'],
   places: ['hospital', 'school', 'park', 'beach', 'mountain', 'restaurant', 'airport', 'library', 'bank', 'church', 'castle', 'farm', 'island', 'forest', 'desert', 'cave', 'city', 'village', 'bridge', 'factory', 'zoo', 'museum', 'hotel', 'cinema', 'stadium', 'pool', 'gym', 'office', 'house', 'tent'],
@@ -162,11 +175,7 @@ io.on('connection', (socket) => {
       users.set(socket.id, { username, roomId: roomCode, score: player.score });
       socket.join(roomCode);
       
-      io.to(roomCode).emit('room_update', {
-        players: room.players,
-        state: room.state,
-        settings: room.settings
-      });
+      io.to(roomCode).emit('room_update', getSanitizedRoom(room));
       // Send the current word hint to the rejoining player if in DRAWING state
       if (room.state === 'DRAWING') {
         const hint = room.currentWord.replace(/[a-zA-Z]/g, '_ ').trim();
@@ -205,11 +214,7 @@ io.on('connection', (socket) => {
 
     socket.join(roomCode);
     
-    io.to(roomCode).emit('room_update', {
-      players: room.players,
-      state: room.state,
-      settings: room.settings
-    });
+    io.to(roomCode).emit('room_update', getSanitizedRoom(room));
     
     // If the room is already in DRAWING state, send the hint and request board state
     if (room.state === 'DRAWING') {
@@ -432,7 +437,7 @@ io.on('connection', (socket) => {
                   rooms.delete(user.roomId);
                 }, 10 * 60 * 1000);
               } else {
-                io.to(user.roomId).emit('room_update', { players: currentRoom.players, state: currentRoom.state, settings: currentRoom.settings });
+                io.to(user.roomId).emit('room_update', getSanitizedRoom(currentRoom));
                 if (wasArtist) {
                   endRound(user.roomId);
                 }
@@ -549,7 +554,7 @@ function startRound(roomId) {
   
   // Explicitly clear board for everyone
   io.to(roomId).emit('clear_board');
-  io.to(roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings, currentRound: room.currentRound });
+  io.to(roomId).emit('room_update', getSanitizedRoom(room));
   
   const artist = room.players[room.currentArtistIndex];
   
@@ -615,7 +620,7 @@ function beginDrawingPhase(roomId, selectedWord) {
     }
   }
   
-  io.to(roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings, currentRound: room.currentRound });
+  io.to(roomId).emit('room_update', getSanitizedRoom(room));
   io.to(roomId).emit('round_start', { 
     artistId: room.players[room.currentArtistIndex].id,
     artistName: room.players[room.currentArtistIndex].username,
@@ -675,7 +680,7 @@ function endRound(roomId) {
   
   if (room.currentRound >= room.settings.maxRounds) {
     room.state = 'GAME_OVER';
-    io.to(roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings, currentRound: room.currentRound });
+    io.to(roomId).emit('room_update', getSanitizedRoom(room));
   } else {
     // Wait 5 seconds before starting the next round automatically, or just start it
     // because startRound() has a 5-second ROUND_STARTING phase anyway!
