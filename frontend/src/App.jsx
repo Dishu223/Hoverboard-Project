@@ -4,6 +4,7 @@ import { Send, Eraser, Camera, Moon, Sun, LogOut } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { playSFX } from './audio';
 import './App.css';
+import { CanvasBoard } from './components/CanvasBoard';
 
 
 const BACKEND_URL = import.meta.env.PROD ? window.location.origin : "http://localhost:3001";
@@ -110,7 +111,7 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [reactions, setReactions] = useState([]);
   
-  const chatBottomRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     const newSocket = io(BACKEND_URL);
@@ -151,7 +152,9 @@ function App() {
         playSFX('chat');
       }
       setTimeout(() => {
-        chatBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
       }, 100);
     });
 
@@ -374,7 +377,11 @@ function App() {
                     </div>
                   )}
 
-                  <Hoverboard socket={socket} isArtist={myPlayerInfo?.isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} canvasType={room.settings?.canvasType} />
+                  {room.settings?.canvasType === 'plain' ? (
+                    <CanvasBoard socket={socket} isArtist={myPlayerInfo?.isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} />
+                  ) : (
+                    <Hoverboard socket={socket} isArtist={myPlayerInfo?.isArtist} isPlaying={room.state === 'DRAWING'} activeMutator={activeMutator} canvasType={room.settings?.canvasType} />
+                  )}
                   
                   {/* Floating Emojis */}
                 {reactions.map((r) => (
@@ -404,7 +411,7 @@ function App() {
             <div className="sidebar card chat-sidebar">
               <h4 style={{ marginBottom: '8px', color: 'var(--color-secondary)' }}>Chat ({roomId})</h4>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                <div className="chat-messages" ref={chatContainerRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
                   {chat.map((m, i) => {
                     const isSystem = m.system;
                     const isMine = m.username === username;
@@ -420,7 +427,7 @@ function App() {
                       </div>
                     );
                   })}
-                  <div ref={chatBottomRef} />
+                  {/* removed empty div */}
                 </div>
                 <ChatInput socket={socket} disabled={isArtist && room.state === 'DRAWING'} />
               </div>
@@ -436,7 +443,11 @@ function App() {
       <h1 className="neon-text" style={{ fontSize: '3rem', marginBottom: '2rem', textAlign: 'center' }}>Lumynati</h1>
       
       {gameState === 'LANDING' && (
-        <div className="card">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <button className="btn-secondary" style={{ position: 'absolute', top: '16px', right: '16px', borderRadius: '50%', padding: '12px', background: 'var(--glass-bg)' }} onClick={toggleTheme} title="Toggle Theme">
+            {document.body.getAttribute('data-theme') === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <div className="card">
           <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Enter the Grid</h2>
           <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <AvatarCreator avatar={avatar} setAvatar={setAvatar} />
@@ -471,10 +482,15 @@ function App() {
             <button type="button" className="btn-primary" onClick={handleCreateBtn}>Create New Room</button>
           </form>
         </div>
+        </div>
       )}
 
       {gameState === 'INTRO' && (
-        <div className="card">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <button className="btn-secondary" style={{ position: 'absolute', top: '16px', right: '16px', borderRadius: '50%', padding: '12px', background: 'var(--glass-bg)' }} onClick={toggleTheme} title="Toggle Theme">
+            {document.body.getAttribute('data-theme') === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <div className="card" style={{ maxWidth: '600px' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Room Settings</h2>
           <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             
@@ -587,6 +603,7 @@ function App() {
               <button type="submit" className="btn-primary" style={{ flex: 2 }}>Launch Game</button>
             </div>
           </form>
+        </div>
         </div>
       )}
     </div>
