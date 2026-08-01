@@ -426,7 +426,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
         </div>
       )}
 
-      <div style={{ width: '100%', height: '100%', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ width: '100%', height: '100%', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0, minHeight: 0 }}>
         <div 
           ref={containerRef}
           style={{ 
@@ -437,7 +437,15 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
             borderRadius: '16px',
             overflow: 'hidden',
             boxShadow: '0 8px 32px var(--shadow-color)',
-            background: 'white'
+            background: 'white',
+            width: '100%',
+            height: '100%',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            aspectRatio: '4 / 3',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
           }}
         >
           <canvas
@@ -447,9 +455,8 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
             style={{
               display: 'block',
               width: '100%',
-              maxWidth: '800px',
-              height: 'auto',
-              aspectRatio: '4/3',
+              height: '100%',
+              objectFit: 'contain',
               cursor: isArtist && isPlaying ? (activeTool === 'eraser' ? 'cell' : 'crosshair') : 'default',
               touchAction: 'none'
             }}

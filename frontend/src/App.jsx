@@ -623,10 +623,10 @@ function App() {
                 </div>
                 <ChatInput socket={socket} disabled={isArtist && room.state === 'DRAWING'} />
               </div>
-              
-              <div className="mobile-reactions">
-                {renderReactions()}
-              </div>
+            </div>
+            
+            <div className="mobile-reactions">
+              {renderReactions()}
             </div>
             
             {renderStartButtonMobile()}
@@ -1329,7 +1329,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
         </div>
       )}
 
-      <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ width: '100%', flex: 1, minWidth: 0, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <div 
           className={`hoverboard-container touch-drawing ${canvasType === 'plain' ? 'canvas-plain' : ''}`} 
           ref={containerRef}
