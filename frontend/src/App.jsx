@@ -505,7 +505,7 @@ function App() {
                     </button>
                   </div>
                   {showEmojiPicker && (
-                    <div className="card" style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: '8px', width: 'max-content', maxWidth: '300px', maxHeight: '50vh', overflowY: 'auto', justifyContent: 'center', padding: '16px', border: '1px solid var(--color-primary)' }}>
+                    <div className="card" style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: '8px', width: 'max-content', maxWidth: '300px', maxHeight: '35vh', overflowY: 'auto', justifyContent: 'center', padding: '12px', border: '1px solid var(--color-primary)' }}>
                       <div style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-primary)', marginBottom: '8px', fontWeight: 'bold' }}>Select up to 6 emojis</div>
                       {ALL_EMOJIS.map(emoji => {
                         const isSelected = myEmojis.includes(emoji);

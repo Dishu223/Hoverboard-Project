@@ -231,7 +231,7 @@ io.on('connection', (socket) => {
     const user = users.get(socket.id);
     if (user) {
       const room = rooms.get(user.roomId);
-      if (room && room.state === 'WAITING' && room.players.length >= 1) {
+      if (room && (room.state === 'WAITING' || room.state === 'GAME_OVER') && room.players.length >= 1) {
         startRound(user.roomId);
       }
     }
@@ -403,7 +403,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  const handleDisconnect = (socket) => {
     chatLimiter.remove(socket.id);
     emojiLimiter.remove(socket.id);
     drawLimiter.remove(socket.id);
@@ -444,6 +444,10 @@ io.on('connection', (socket) => {
       users.delete(socket.id);
     }
     console.log(`User disconnected: ${socket.id}`);
+  };
+
+  socket.on('disconnect', () => {
+    handleDisconnect(socket);
   });
 
   socket.on('leave_room', () => {
@@ -632,7 +636,7 @@ function beginDrawingPhase(roomId, selectedWord) {
   }
   const hintString = hintArray.join(' ');
   
-  io.to(roomId).emit('word_hint', room.currentWord.replace(/[a-zA-Z]/g, '_ ').trim());
+  io.to(roomId).emit('word_hint', room.currentWord.replace(/[^ ]/g, '_ ').trim());
 
   // Send the actual word only to the artist
   if (artist) {
