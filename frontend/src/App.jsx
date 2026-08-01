@@ -1191,7 +1191,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '100%' }}>
       {isArtist && isPlaying && (
-        <div className="artist-toolbar" style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap', borderRadius: '16px', marginBottom: '16px' }}>
+        <div className="artist-toolbar">
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontWeight: 'bold' }}>Color:</span>
               <select className="input" style={{ padding: '6px 12px', fontSize: '0.9rem', minWidth: '120px' }} value={selectedColor} onChange={(e) => { setSelectedColor(e.target.value); setActiveTool('brush'); }}>
@@ -1259,7 +1259,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
         </div>
       )}
 
-      <div style={{ width: '100%', height: '100%', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <div 
           className={`hoverboard-container touch-drawing ${canvasType === 'plain' ? 'canvas-plain' : ''}`} 
           ref={containerRef}

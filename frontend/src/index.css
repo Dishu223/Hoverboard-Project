@@ -613,17 +613,19 @@ select.input {
 
 /* Toolbar styling override */
 .artist-toolbar {
-  display: flex; 
-  gap: 16px; 
-  background: var(--glass-bg); 
+  display: flex;
+  gap: 24px;
+  background: var(--glass-bg);
   backdrop-filter: blur(10px);
-  padding: 12px 24px; 
-  border-radius: 99px; 
-  flex-wrap: wrap; 
-  justify-content: center; 
-  border: 2px solid white;
+  padding: 12px 24px;
+  border-radius: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  border: 1px solid rgba(0,0,0,0.05);
   box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* --- Mobile Responsive Layout --- */
@@ -670,6 +672,23 @@ select.input {
   .top-bar-center .timer-warning-anim, .top-bar-center > div:last-child {
     font-size: 1.2rem !important;
     padding: 4px 12px !important;
+  }
+
+  .artist-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: flex-start;
+    padding: 12px;
+    gap: 16px;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .artist-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .artist-toolbar > div {
+    flex-shrink: 0;
   }
 
   .game-room {
