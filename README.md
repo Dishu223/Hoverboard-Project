@@ -1,59 +1,82 @@
-🌈 Interactive Light-Grid Canvas
-An immersive, interactive grid where your mouse movement creates vibrant trails of light. This project has evolved from a simple hoverboard into a customizable visualizer with dynamic color palettes, adjustable grid density, and persistence controls.
+<div align="center">
+  <img src="https://img.shields.io/badge/Lumynati-F472B6?style=for-the-badge&logo=react&logoColor=white" alt="Lumynati Banner" />
+  <h1>✨ Lumynati ✨</h1>
+  <p><strong>A modern, glassmorphic, real-time drawing & guessing game!</strong></p>
+  
+  [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
+  [![Socket.io](https://img.shields.io/badge/Socket.io-black?style=for-the-badge&logo=socket.io&badgeColor=010101)](#)
+  [![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](#)
+</div>
 
-<img width="1603" height="872" alt="image" src="https://github.com/user-attachments/assets/1e5c06f5-15fd-4d5b-b8a1-5a49435dbffc" />
+<br />
 
-🚀 Features
-The latest version includes a comprehensive control header to customize your experience in real-time:
+Welcome to **Lumynati**, a beautiful and highly customizable real-time drawing game built for endless fun with your friends. Whether you want a relaxed Pictionary experience or absolute chaos, Lumynati has the perfect mode for you!
 
-Dynamic Palettes: Choose between pre-set color themes like Neon, Ocean, and Fire (shown in the preview) to change the mood of the canvas instantly.
+## 🌟 Features
 
-Draw Modes:
-  Draw: Add colors to the grid.
+### 🎨 The Ultimate Drawing Experience
+- **Liquid Glass Design:** Built entirely on a premium, responsive glassmorphic UI that adapts perfectly from mobile devices to ultrawide desktop monitors.
+- **Hoverboard Pixel Grid:** A completely seamless, lag-free CSS grid drawing board where you paint by hovering (or swiping on mobile!). Don't like pixels? Switch to the **Plain White Canvas** in the room settings.
+- **Emojis & Reactions:** React to drawings in real-time with floating emojis. Use the Custom Emoji panel to swap out your favorites from a 16-emoji arsenal!
+- **Fireworks!** Watch beautiful confetti explode across your screen when you correctly guess the word.
 
-  Overwrite: Replace existing colors with new ones from the current palette.
+### ⚙️ Unmatched Customizability
+When creating a room, the host has ultimate control:
+- **Custom Draw Mode:** Sick of random words? Toggle this on, and the artist can type whatever they want to draw instead!
+- **Word Categories:** Choose from 10+ built-in categories or input your own comma-separated custom words. 
+- **Word Repetition:** Toggle whether words can repeat or if they should be filtered out once guessed.
+- **Penalty Mode:** Toggle *Negative Points* to punish players who spam the chat with incorrect guesses!
+- **Chaos Mutators:**
+  - 🔄 **Symmetry Mode:** Everything you draw is perfectly mirrored across the canvas.
+  - 🙈 **Blindfold Mode:** You have 5 seconds to look at your drawing before the canvas turns invisible!
+  - 🙃 **Upside Down Mode:** The canvas flips 180 degrees. Good luck coordinating your mouse!
 
-  Rainbow: A special mode that cycles through the full spectrum.
+### 💡 Smart Game Logic
+- **Fuzzy Matching:** Don't lose your mind over spaces. "icecream" matches "ice cream". We strip out all the annoying formatting to make sure your right guesses actually count.
+- **Close Guess Detection:** If you are just a typo away, the chat will subtly let you know you are *very close*.
+- **Spectator Mode:** Join the game as a passive observer. Watch the art, chat with the players, but stay out of the drawing rotation!
+- **Reconnection Grace Period:** Accidentally closed the tab? Lumynati holds your spot and score for up to 60 seconds so you can seamlessly rejoin your match.
 
-  Precision Grid Control: Adjust the Grid Size (up to 2000 squares) via a slider to change the resolution of your "digital canvas."
+---
 
-  Trail Persistence: Use the Trail slider to determine how long the colors stay lit after your mouse leaves the square (currently set to 2.0s in the preview).
+## 🚀 Getting Started
 
-  Interaction Modes: Toggle Click Mode for manual placement or use the default hover interaction for fluid movement.
+### Prerequisites
+Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
-  Instant Reset: A dedicated Clear button to wipe the canvas clean.
+### Installation
 
-🛠️ Installation & Usage
-Download the Files: Copy index.html, style.css, and script.js into a single project folder.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Dishu223/Hoverboard-Project.git
+   cd Hoverboard-Project
+   ```
 
-Launch with VS Code:
+2. **Start the Backend Server:**
+   ```bash
+   cd backend
+   npm install
+   npm start
+   ```
+   The backend will run on `http://localhost:3001` (or your configured `PORT`).
 
-Open the folder in VS Code.
+3. **Start the Frontend App:**
+   ```bash
+   cd ../frontend
+   npm install
+   npm run dev
+   ```
+   The frontend will spin up using Vite. Click the local link to start playing!
 
-Right-click index.html and select Open with Live Server (or use the Show Preview command).
+---
 
-Interact: Move your mouse over the grid to start generating light trails.
+## 🛠️ Built With
+- **Frontend:** React, Vite, CSS Modules, Canvas-Confetti, Lucide-React
+- **Backend:** Node.js, Express, Socket.io
+- **Design Philosophy:** `#UI/UX Pro Max` (Dark mode ready, minimal, elegant typography, fluid transitions)
 
-🎨 Customization
-You can still tweak the core settings directly in script.js:
+---
 
-Changing the Grid
-Modify the squares variable to set the default density:
-
-JavaScript
-const squares = 2000; // Adjust for more or fewer blocks
-Adding Custom Palettes
-Update the colors array with hex codes from your favorite tools like Coolors:
-
-JavaScript
-const colors = ['#FF5733', '#C70039', '#900C3F', '#581845'];
-📅 Roadmap
-[x] Glow Effect & Neon Aesthetics
-
-[x] Color Palette Selection UI
-
-[ ] Light/Dark Mode Switch
-
-[ ] Save Canvas as Image
-
-[ ] Touch Support for Mobile
+<div align="center">
+  <p>Made with ❤️ for endless game nights.</p>
+</div>

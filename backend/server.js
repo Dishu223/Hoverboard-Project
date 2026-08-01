@@ -71,7 +71,8 @@ io.on('connection', (socket) => {
       currentRound: 0,
       timer: null,
       timeRemaining: 0,
-      guessedPlayers: new Set()
+      guessedPlayers: new Set(),
+      usedWords: new Set()
     });
 
     joinRoomLogic(socket, username, roomId, callback, settings?.avatar, settings?.isSpectator);
@@ -243,8 +244,10 @@ io.on('connection', (socket) => {
         
         if (room.state === 'DRAWING') {
           if (!player.isArtist && !room.guessedPlayers.has(socket.id)) {
-            const guess = message.toLowerCase().trim();
-            const target = room.currentWord.toLowerCase();
+            const rawGuess = message.toLowerCase().trim();
+            const rawTarget = room.currentWord.toLowerCase();
+            const guess = rawGuess.replace(/[^a-z0-9]/g, '');
+            const target = rawTarget.replace(/[^a-z0-9]/g, '');
             
             if (guess === target) {
               room.guessedPlayers.add(socket.id);
@@ -263,7 +266,7 @@ io.on('connection', (socket) => {
                 artist.score += artistPoints;
               }
 
-              io.to(user.roomId).emit('chat_message', { system: true, text: `🎉 ${user.username} guessed the word! (+${guessPoints} pts)` });
+              io.to(user.roomId).emit('chat_message', { system: true, text: `🎉 ${user.username} guessed the word! (+${guessPoints} pts)`, type: 'correct_guess' });
               io.to(user.roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings });
               
               // If everyone guessed it
@@ -273,8 +276,15 @@ io.on('connection', (socket) => {
               return;
             } else if (target.length > 3 && getLevenshteinDistance(guess, target) <= 2) {
               // Close Guess
-              socket.emit('chat_message', { system: true, text: `'${message}' is very close!` });
+              socket.emit('chat_message', { system: true, text: `'${message}' is very close!`, type: 'close_guess' });
               // Still broadcast the message so others see it, but don't count it as right
+            } else {
+              // Wrong Guess
+              if (room.settings.penaltyOnWrongGuess) {
+                player.score = Math.max(0, player.score - 2);
+                socket.emit('chat_message', { system: true, text: `❌ Incorrect! (-2 pts)`, type: 'wrong_guess' });
+                io.to(user.roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings });
+              }
             }
           }
         }
@@ -420,6 +430,17 @@ function getThreeRandomWords(room) {
     categoryWords = WORD_CATEGORIES.animals.concat(WORD_CATEGORIES.food, WORD_CATEGORIES.objects);
   }
 
+  if (room.settings.allowRepeatingWords === false) {
+    let availableWords = categoryWords.filter(w => !room.usedWords.has(w));
+    if (availableWords.length < 3) {
+      // If we ran out of unique words, reset the used words and fallback
+      room.usedWords.clear();
+      availableWords = categoryWords;
+    }
+    const shuffled = [...availableWords].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3);
+  }
+
   const shuffled = [...categoryWords].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, 3);
 }
@@ -447,20 +468,26 @@ function startRound(roomId) {
   // Transition to WORD_SELECTION phase
   room.state = 'WORD_SELECTION';
   room.currentRound += 1;
-  room.timeRemaining = 15; // 15-second selection phase
+  room.timeRemaining = room.settings.wordSelectionTime || 15; // Variable selection phase
   room.shufflesRemaining = 3;
   
-  // Get 3 words
-  const words = getThreeRandomWords(room);
-  room.currentSelectionWords = words;
-
   // Explicitly clear board for everyone
   io.to(roomId).emit('clear_board');
   io.to(roomId).emit('room_update', { players: room.players, state: room.state, settings: room.settings, currentRound: room.currentRound });
   
   const artist = room.players[room.currentArtistIndex];
-  if (artist) {
-    io.to(artist.id).emit('word_selection_start', { words, shufflesRemaining: room.shufflesRemaining });
+  
+  if (room.settings.customDrawMode) {
+    if (artist) {
+      io.to(artist.id).emit('word_selection_start', { customDrawMode: true });
+    }
+  } else {
+    // Get 3 words
+    const words = getThreeRandomWords(room);
+    room.currentSelectionWords = words;
+    if (artist) {
+      io.to(artist.id).emit('word_selection_start', { words, shufflesRemaining: room.shufflesRemaining, customDrawMode: false });
+    }
   }
 
   room.timer = setInterval(() => {
@@ -470,8 +497,12 @@ function startRound(roomId) {
     if (room.timeRemaining <= 0) {
       clearInterval(room.timer);
       room.timer = null;
-      const autoWord = room.currentSelectionWords[Math.floor(Math.random() * room.currentSelectionWords.length)];
-      beginDrawingPhase(roomId, autoWord);
+      if (room.settings.customDrawMode) {
+        beginDrawingPhase(roomId, getThreeRandomWords(room)[0]);
+      } else {
+        const autoWord = room.currentSelectionWords[Math.floor(Math.random() * room.currentSelectionWords.length)];
+        beginDrawingPhase(roomId, autoWord);
+      }
     }
   }, 1000);
 }
@@ -480,7 +511,11 @@ function beginDrawingPhase(roomId, selectedWord) {
   const room = rooms.get(roomId);
   if (!room) return;
   
-  room.currentWord = selectedWord;
+  if (selectedWord) {
+    room.usedWords.add(selectedWord);
+  }
+  
+  room.currentWord = selectedWord || 'mystery';
   room.state = 'DRAWING';
   room.timeRemaining = room.settings.timeLimit;
   

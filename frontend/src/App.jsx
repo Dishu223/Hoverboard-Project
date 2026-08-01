@@ -89,6 +89,10 @@ function App() {
     categories: ['animals', 'food', 'objects'], 
     canvasType: 'hoverboard',
     timeLimit: 60, 
+    wordSelectionTime: 30,
+    customDrawMode: false,
+    allowRepeatingWords: false,
+    penaltyOnWrongGuess: false,
     customWords: '',
     maxRounds: 6,
     mutators: {
@@ -113,7 +117,8 @@ function App() {
   const ALL_EMOJIS = ['❤️', '😂', '😮', '🤔', '🔥', '🎉', '🤡', '💀', '😭', '👀', '👍', '👎', '✨', '💯', '💩', '😎'];
   const [myEmojis, setMyEmojis] = useState(['❤️', '😂', '😮', '🤔', '🔥', '🎉']);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [wordSelection, setWordSelection] = useState(null); // { words: [], shufflesRemaining: 3 }
+  const [wordSelection, setWordSelection] = useState(null); // { words: [], shufflesRemaining: 3, customDrawMode: boolean }
+  const [customDrawWord, setCustomDrawWord] = useState('');
   
   const chatContainerRef = useRef(null);
 
@@ -298,11 +303,16 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100vw', boxSizing: 'border-box' }}>
           
           {/* Top Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 24px', background: 'rgba(255,255,255,0.3)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.5)' }}>
-            <h2 className="neon-text" style={{ fontSize: '1.5rem', margin: 0, flex: 1 }}>Lumynati</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.5)', zIndex: 10 }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <h2 className="neon-text" style={{ fontSize: '1.8rem', margin: 0 }}>Lumynati</h2>
+              <div style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--color-primary)', padding: '6px 16px', borderRadius: '12px', fontWeight: 'bold', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '1.1rem' }}>
+                Room Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '1.3rem' }}>{room.id}</span>
+              </div>
+            </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--color-primary)' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--color-primary)' }}>
                 {room.state === 'WAITING' ? 'Waiting Area' : (isArtist ? `Draw: ${currentWord}` : (wordHint ? `Hint: ${wordHint}` : `Guess what ${artistName} is drawing!`))}
                 {activeMutator !== 'none' && room.state === 'DRAWING' && (
                   <span style={{ marginLeft: '12px', fontSize: '1rem', color: '#ef4444', background: '#fef2f2', padding: '2px 8px', borderRadius: '12px', border: '1px solid #fca5a5' }}>
@@ -315,10 +325,10 @@ function App() {
                 <div style={{ 
                   background: timeLeft <= 10 ? '#ef4444' : 'var(--glass-bg)', 
                   color: timeLeft <= 10 ? 'white' : 'var(--color-primary)', 
-                  padding: '4px 16px', 
+                  padding: '6px 20px', 
                   borderRadius: '20px', 
-                  fontWeight: 'bold', 
-                  fontSize: '1.2rem',
+                  fontWeight: '900', 
+                  fontSize: '1.5rem',
                   boxShadow: timeLeft <= 10 ? '0 0 10px rgba(239,68,68,0.5)' : 'none',
                   transition: 'all 0.3s'
                 }}>
@@ -339,7 +349,7 @@ function App() {
           </div>
 
           <div className="game-room">
-            <div className="sidebar card" style={{ width: '250px', flexShrink: 0 }}>
+            <div className="sidebar card" style={{ padding: '16px' }}>
               <h4 style={{ marginBottom: '8px', color: 'var(--color-secondary)' }}>Players</h4>
               <ul className="player-list">
                 {room.players.map((p, i) => (
@@ -404,19 +414,33 @@ function App() {
                     <div className="round-overlay" style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(10px)', border: '1px solid var(--color-primary)' }}>
                       {myPlayerInfo?.isArtist ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <h2 className="neon-text" style={{ fontSize: '2rem', marginBottom: '20px' }}>Choose a word!</h2>
-                          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                            {wordSelection?.words?.map((w) => (
-                              <button key={w} className="btn-primary" style={{ padding: '12px 24px', fontSize: '1.2rem' }} onClick={() => socket.emit('select_word', { word: w })}>
-                                {w}
-                              </button>
-                            ))}
-                          </div>
+                          {wordSelection?.customDrawMode ? (
+                            <>
+                              <h2 className="neon-text" style={{ fontSize: '2rem', marginBottom: '20px' }}>What will you draw?</h2>
+                              <form onSubmit={(e) => { e.preventDefault(); if (customDrawWord.trim()) { socket.emit('select_word', { word: customDrawWord.trim() }); setCustomDrawWord(''); } }} style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                                <input type="text" className="input" placeholder="Type a word..." value={customDrawWord} onChange={e => setCustomDrawWord(e.target.value)} autoFocus style={{ minWidth: '250px' }} />
+                                <button type="submit" className="btn-primary" disabled={!customDrawWord.trim()}>Submit</button>
+                              </form>
+                            </>
+                          ) : (
+                            <>
+                              <h2 className="neon-text" style={{ fontSize: '2rem', marginBottom: '20px' }}>Choose a word!</h2>
+                              <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {wordSelection?.words?.map((w) => (
+                                  <button key={w} className="btn-primary" style={{ padding: '12px 24px', fontSize: '1.2rem' }} onClick={() => socket.emit('select_word', { word: w })}>
+                                    {w}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
                           <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                             <div className="countdown-number" style={{ fontSize: '2.5rem' }}>{room.timeRemaining}</div>
-                            <button className="btn-secondary" style={{ padding: '12px 24px' }} disabled={wordSelection?.shufflesRemaining <= 0} onClick={() => socket.emit('shuffle_words')}>
-                              Shuffle ({wordSelection?.shufflesRemaining} left)
-                            </button>
+                            {!wordSelection?.customDrawMode && (
+                              <button className="btn-secondary" style={{ padding: '12px 24px' }} disabled={wordSelection?.shufflesRemaining <= 0} onClick={() => socket.emit('shuffle_words')}>
+                                Shuffle ({wordSelection?.shufflesRemaining} left)
+                              </button>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -504,7 +528,7 @@ function App() {
                   {chat.map((m, i) => {
                     const isSystem = m.system;
                     const isMine = m.username === username;
-                    const msgClass = isSystem ? 'system' : (isMine ? 'sent' : 'received');
+                    const msgClass = isSystem ? `system ${m.type || ''}` : (isMine ? 'sent' : 'received');
                     
                     return (
                       <div key={i} className={`chat-msg ${msgClass}`} style={{ display: 'flex', flexDirection: isMine ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: '8px' }}>
@@ -625,6 +649,16 @@ function App() {
               </select>
             </div>
 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Selection Time</label>
+              <select className="input" value={settings.wordSelectionTime} onChange={(e) => setSettings({...settings, wordSelectionTime: parseInt(e.target.value)})}>
+                <option value="15">15 Seconds</option>
+                <option value="30">30 Seconds</option>
+                <option value="45">45 Seconds</option>
+                <option value="60">60 Seconds</option>
+              </select>
+            </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Canvas Type</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -664,7 +698,7 @@ function App() {
                   </button>
                   
                   {categoriesExpanded && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px var(--shadow-color)', maxHeight: '200px', overflowY: 'auto' }}>
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px var(--shadow-color)', maxHeight: '200px', overflowY: 'auto' }}>
                       <button 
                         type="button" 
                         className="btn-secondary" 
@@ -717,7 +751,34 @@ function App() {
 
 
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderRadius: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: 'var(--color-primary)', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={settings.customDrawMode} 
+                  onChange={(e) => setSettings({...settings, customDrawMode: e.target.checked})} 
+                />
+                Custom Draw Mode (Artist types their own word!)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: 'var(--color-primary)', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={settings.allowRepeatingWords} 
+                  onChange={(e) => setSettings({...settings, allowRepeatingWords: e.target.checked})} 
+                />
+                Allow Repeating Words
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: 'var(--color-primary)', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={settings.penaltyOnWrongGuess} 
+                  onChange={(e) => setSettings({...settings, penaltyOnWrongGuess: e.target.checked})} 
+                />
+                Penalty on Wrong Guess (-2 pts)
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderRadius: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: 'var(--color-primary)', cursor: 'pointer' }}>
                 <input 
                   type="checkbox" 
