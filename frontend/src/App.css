@@ -1,1 +1,19 @@
 /* All styles are in index.css */
+
+.color-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  padding: 0;
+}
+.color-btn:hover {
+  transform: scale(1.1);
+}
+.color-btn.selected {
+  border-color: var(--color-primary);
+  transform: scale(1.15);
+  box-shadow: 0 0 8px var(--color-primary);
+}

@@ -81,6 +81,7 @@ function App() {
     } catch(e) { return Array(64).fill('#ffffff'); }
   });
   const [isSpectator, setIsSpectator] = useState(false);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   
   // Settings State
   const [settings, setSettings] = useState({ 
@@ -109,6 +110,9 @@ function App() {
   
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [reactions, setReactions] = useState([]);
+  const ALL_EMOJIS = ['❤️', '😂', '😮', '🤔', '🔥', '🎉', '🤡', '💀', '😭', '👀', '👍', '👎', '✨', '💯', '💩', '😎'];
+  const [myEmojis, setMyEmojis] = useState(['❤️', '😂', '😮', '🤔', '🔥', '🎉']);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [wordSelection, setWordSelection] = useState(null); // { words: [], shufflesRemaining: 3 }
   
   const chatContainerRef = useRef(null);
@@ -324,11 +328,7 @@ function App() {
             </div>
 
             <div style={{ minWidth: '150px', textAlign: 'right', flex: 1, display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-              {isArtist && (
-                <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem' }} onClick={() => socket.emit('clear_board')} title="Clear Board">
-                  <Eraser size={18} /> Clear
-                </button>
-              )}
+
               <button className="btn-secondary" onClick={toggleTheme} style={{ padding: '8px', borderRadius: '50%' }} title="Toggle Theme">
                 {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -442,18 +442,56 @@ function App() {
                 ))}
                 
                 {/* Reaction Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '16px' }}>
-                  {['❤️', '😂', '😮', '🤔', '🔥'].map(emoji => (
+                <div style={{ position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
+                    {myEmojis.map(emoji => (
+                      <button 
+                        key={emoji}
+                        className="btn-secondary" 
+                        style={{ fontSize: '1.5rem', padding: '8px 16px', borderRadius: '50%' }}
+                        onClick={() => socket.emit('reaction', emoji)}
+                        title={`Send ${emoji} reaction`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
                     <button 
-                      key={emoji}
-                      className="btn-secondary" 
+                      className="btn-primary" 
                       style={{ fontSize: '1.5rem', padding: '8px 16px', borderRadius: '50%' }}
-                      onClick={() => socket.emit('reaction', emoji)}
-                      title={`Send ${emoji} reaction`}
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      title="Customize Emojis"
                     >
-                      {emoji}
+                      +
                     </button>
-                  ))}
+                  </div>
+                  {showEmojiPicker && (
+                    <div className="card" style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: '8px', width: 'max-content', maxWidth: '300px', justifyContent: 'center', padding: '16px', border: '1px solid var(--color-primary)' }}>
+                      <div style={{ width: '100%', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-primary)', marginBottom: '8px', fontWeight: 'bold' }}>Select up to 6 emojis</div>
+                      {ALL_EMOJIS.map(emoji => {
+                        const isSelected = myEmojis.includes(emoji);
+                        return (
+                          <button
+                            key={emoji}
+                            className={isSelected ? "btn-primary" : "btn-secondary"}
+                            style={{ fontSize: '1.2rem', padding: '6px 10px', borderRadius: '8px' }}
+                            onClick={() => {
+                              if (isSelected) {
+                                setMyEmojis(prev => prev.filter(e => e !== emoji));
+                              } else {
+                                if (myEmojis.length < 6) {
+                                  setMyEmojis(prev => [...prev, emoji]);
+                                } else {
+                                  alert("You can only select up to 6 emojis. Deselect one first.");
+                                }
+                              }
+                            }}
+                          >
+                            {emoji}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
               )}
@@ -546,9 +584,13 @@ function App() {
           <button className="btn-secondary" style={{ position: 'absolute', top: '16px', right: '16px', borderRadius: '50%', padding: '12px', background: 'var(--glass-bg)' }} onClick={toggleTheme} title="Toggle Theme">
             {document.body.getAttribute('data-theme') === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <div className="card" style={{ maxWidth: '600px' }}>
+          <div className="card" style={{ maxWidth: '800px', width: '100%' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Room Settings</h2>
-          <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+              
+              {/* Left Column */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Max Rounds</label>
@@ -583,9 +625,62 @@ function App() {
               </select>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Word Categories</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px', background: 'var(--glass-bg)', padding: '12px', borderRadius: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Canvas Type</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    type="button"
+                    className={settings.canvasType === 'hoverboard' ? 'btn-primary' : 'btn-secondary'}
+                    style={{ flex: 1, padding: '10px' }}
+                    onClick={() => setSettings({...settings, canvasType: 'hoverboard'})}
+                  >
+                    Hoverboard (Pixel Grid)
+                  </button>
+                  <button 
+                    type="button"
+                    className={settings.canvasType === 'plain' ? 'btn-primary' : 'btn-secondary'}
+                    style={{ flex: 1, padding: '10px' }}
+                    onClick={() => setSettings({...settings, canvasType: 'plain'})}
+                  >
+                    Plain White (No Grid)
+                  </button>
+                </div>
+              </div>
+              
+              </div>
+              
+              {/* Right Column */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+                  <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Word Categories</label>
+                  <button 
+                    type="button"
+                    className="input" 
+                    style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                  >
+                    {settings.categories.length} Selected
+                    <span>{categoriesExpanded ? '▲' : '▼'}</span>
+                  </button>
+                  
+                  {categoriesExpanded && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px var(--shadow-color)', maxHeight: '200px', overflowY: 'auto' }}>
+                      <button 
+                        type="button" 
+                        className="btn-secondary" 
+                        style={{ fontSize: '0.8rem', padding: '4px' }}
+                        onClick={() => {
+                          const allCats = ['animals', 'places', 'food', 'objects', 'nature', 'body', 'clothing', 'vehicles', 'sports', 'actions', 'custom'];
+                          if (settings.categories.length === allCats.length) {
+                            setSettings({...settings, categories: []});
+                          } else {
+                            setSettings({...settings, categories: allCats});
+                          }
+                        }}
+                      >
+                        {settings.categories.length === 11 ? 'Deselect All' : 'Select All'}
+                      </button>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {['animals', 'places', 'food', 'objects', 'nature', 'body', 'clothing', 'vehicles', 'sports', 'actions', 'custom'].map(cat => (
                   <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.9rem' }}>
                     <input 
@@ -602,8 +697,10 @@ function App() {
                     {cat.charAt(0).toUpperCase() + cat.slice(1)}
                   </label>
                 ))}
-              </div>
-            </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
             
             {settings.categories.includes('custom') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -618,13 +715,7 @@ function App() {
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>Canvas Type</label>
-              <select className="input" value={settings.canvasType} onChange={(e) => setSettings({...settings, canvasType: e.target.value})}>
-                <option value="hoverboard">Hoverboard (Pixel Grid)</option>
-                <option value="plain">Plain White (No Grid)</option>
-              </select>
-            </div>
+
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: 'var(--color-primary)', cursor: 'pointer' }}>
@@ -653,6 +744,8 @@ function App() {
                 </div>
               )}
             </div>
+            </div> {/* End Right Column */}
+            </div> {/* End Grid */}
 
             <div style={{ display: 'flex', gap: '16px', marginTop: '1rem' }}>
               <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setGameState('LANDING')}>Back</button>
