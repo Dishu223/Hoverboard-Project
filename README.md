@@ -12,6 +12,8 @@
 
 Welcome to **Lumynati**, a beautiful and highly customizable real-time drawing game built for endless fun with your friends. Whether you want a relaxed Pictionary experience or absolute chaos, Lumynati has the perfect mode for you!
 
+**Play Now:** [https://hoverboard-game.onrender.com/](https://hoverboard-game.onrender.com/)
+
 ## 🌟 Features
 
 ### 🎨 The Ultimate Drawing Experience
