@@ -89,7 +89,7 @@ class RateLimiter {
   }
 }
 
-const chatLimiter = new RateLimiter(5, 20000); // 5 messages per 20 seconds
+const chatLimiter = new RateLimiter(20, 10000); // 20 messages per 10 seconds
 const emojiLimiter = new RateLimiter(3, 1000); // 3 emojis per second
 const drawLimiter = new RateLimiter(40, 1000); // 40 draw batches per second
 
@@ -142,7 +142,8 @@ io.on('connection', (socket) => {
       return callback({ error: 'Room not found' });
     }
 
-    if (room.players.length >= room.settings.maxPlayers) {
+    const existingPlayer = room.players.find(p => p.username === username);
+    if (!existingPlayer && room.players.length >= room.settings.maxPlayers) {
       return callback({ error: 'Room is full' });
     }
 

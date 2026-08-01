@@ -18,8 +18,10 @@ Welcome to **Lumynati**, a beautiful and highly customizable real-time drawing g
 
 ### 🎨 The Ultimate Drawing Experience
 - **Liquid Glass Design:** Built entirely on a premium, responsive glassmorphic UI that adapts perfectly from mobile devices to ultrawide desktop monitors.
+- **Mobile First "Instagram" Layout:** A brand new immersive mobile experience! Featuring a bottom navigation bar, smooth slide-up glassmorphism bottom sheets for chat and settings, and vertical pop-up emoji reactions—all designed so nothing obstructs your canvas.
+- **Smart Drawing Tools:** Features a true BFS (Breadth-First Search) Flood Fill algorithm to perfectly fill your shapes, and a rock-solid Undo/Redo stack that saves your strokes perfectly.
 - **Hoverboard Pixel Grid:** A completely seamless, lag-free CSS grid drawing board where you paint by hovering (or swiping on mobile!). Don't like pixels? Switch to the **Plain White Canvas** in the room settings.
-- **Emojis & Reactions:** React to drawings in real-time with floating emojis. Use the Custom Emoji panel to swap out your favorites from a 16-emoji arsenal!
+- **Emojis & Reactions:** React to drawings in real-time with floating emojis. Use the Custom Emoji panel to swap out your favorites from a massive emoji arsenal!
 - **Fireworks!** Watch beautiful confetti explode across your screen when you correctly guess the word.
 
 ### ⚙️ Unmatched Customizability
@@ -37,7 +39,7 @@ When creating a room, the host has ultimate control:
 - **Fuzzy Matching:** Don't lose your mind over spaces. "icecream" matches "ice cream". We strip out all the annoying formatting to make sure your right guesses actually count.
 - **Close Guess Detection:** If you are just a typo away, the chat will subtly let you know you are *very close*.
 - **Spectator Mode:** Join the game as a passive observer. Watch the art, chat with the players, but stay out of the drawing rotation!
-- **Reconnection Grace Period:** Accidentally closed the tab? Lumynati holds your spot and score for up to 60 seconds so you can seamlessly rejoin your match.
+- **Bulletproof Reconnection:** Accidentally closed the tab? Lumynati holds your spot and score for up to 60 seconds so you can seamlessly rejoin your match, even if the room is technically "full"!
 
 ---
 
@@ -75,7 +77,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 ## 🛠️ Built With
 - **Frontend:** React, Vite, CSS Modules, Canvas-Confetti, Lucide-React
 - **Backend:** Node.js, Express, Socket.io
-- **Design Philosophy:** `#UI/UX Pro Max` (Dark mode ready, minimal, elegant typography, fluid transitions)
+- **Design Philosophy:** `#UI/UX Pro Max` (Dark mode ready, minimal, elegant typography, fluid transitions, mobile-first bottom nav)
 
 ---
 

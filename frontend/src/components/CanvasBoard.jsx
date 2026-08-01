@@ -1,12 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Eraser, Camera } from 'lucide-react';
 import { toPng } from 'html-to-image';
+import { floodFill } from '../utils/floodFill';
 
 export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   
-  const [selectedColor, setSelectedColor] = useState('random');
+  const [selectedColor, setSelectedColor] = useState('#1d1d1d');
   const [customColor, setCustomColor] = useState('#000000');
   const [activeTool, setActiveTool] = useState('brush'); // brush, eraser, fill
   const [brushSize, setBrushSize] = useState(3);
@@ -91,7 +92,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
             data.color, data.size, data.isEraser ? 1 : 0
           ]);
         } else if (type === 'fill') {
-          strokeBufferRef.current.push([2, data.color]);
+          strokeBufferRef.current.push([2, Math.round(data.x), Math.round(data.y), data.color]);
         } else if (type === 'clear') {
           strokeBufferRef.current.push([3]);
         }
@@ -115,8 +116,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
             tCtx.lineJoin = 'round';
             tCtx.stroke();
           } else if (typeId === 2) { // fill
-            tCtx.fillStyle = tuple[1];
-            tCtx.fillRect(0, 0, canvas.width, canvas.height);
+            floodFill(tCtx, tuple[1], tuple[2], tuple[3]);
           } else if (typeId === 3) { // clear
             tCtx.fillStyle = '#ffffff';
             tCtx.fillRect(0, 0, canvas.width, canvas.height);
@@ -136,8 +136,7 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
           tCtx.lineJoin = 'round';
           tCtx.stroke();
         } else if (type === 'fill') {
-          tCtx.fillStyle = data.color;
-          tCtx.fillRect(0, 0, canvas.width, canvas.height);
+          floodFill(tCtx, data.x, data.y, data.color);
         } else if (type === 'clear') {
           tCtx.fillStyle = '#ffffff';
           tCtx.fillRect(0, 0, canvas.width, canvas.height);
@@ -155,9 +154,11 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
         let color = selectedColor === 'random' 
           ? colors[Math.floor(Math.random() * (colors.length - 2))].hex 
           : (selectedColor === 'custom' ? customColor : selectedColor);
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        emitDraw('fill', { color });
+          
+        const pos = getMousePos(e);
+        floodFill(ctx, pos.x, pos.y, color);
+        emitDraw('fill', { x: pos.x, y: pos.y, color });
+        
         if (socket) socket.emit('board_state', canvas.toDataURL());
         return;
       }
@@ -245,6 +246,8 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
 
     const onClear = () => {
       applyDrawEvent({ type: 'clear' });
+      undoStackRef.current = [canvasRef.current.toDataURL()];
+      redoStackRef.current = [];
     };
 
     if (socket) {
@@ -285,10 +288,10 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
   }, [socket, isArtist, isPlaying]);
 
   const handleUndo = () => {
-    if (undoStackRef.current.length > 1) {
-      const currentState = undoStackRef.current.pop();
+    if (undoStackRef.current.length > 0) {
+      const currentState = canvasRef.current.toDataURL();
       redoStackRef.current.push(currentState);
-      const previousState = undoStackRef.current[undoStackRef.current.length - 1];
+      const previousState = undoStackRef.current.pop();
       
       const img = new Image();
       img.onload = () => {
@@ -303,8 +306,9 @@ export function CanvasBoard({ socket, isArtist, isPlaying, activeMutator }) {
 
   const handleRedo = () => {
     if (redoStackRef.current.length > 0) {
+      const currentState = canvasRef.current.toDataURL();
+      undoStackRef.current.push(currentState);
       const nextState = redoStackRef.current.pop();
-      undoStackRef.current.push(nextState);
       
       const img = new Image();
       img.onload = () => {

@@ -71,7 +71,8 @@ function AvatarCreator({ avatar, setAvatar }) {
 
 function App() {
   const [socket, setSocket] = useState(null);
-  const [gameState, setGameState] = useState('LANDING'); // LANDING, INTRO, ROOM
+  const [gameState, setGameState] = useState('LANDING');
+  const [activeMobileTab, setActiveMobileTab] = useState('draw'); // LANDING, INTRO, ROOM
   const [username, setUsername] = useState(() => localStorage.getItem('hoverboard_username') || '');
   const [roomId, setRoomId] = useState('');
   const [avatar, setAvatar] = useState(() => {
@@ -509,6 +510,8 @@ function App() {
           )}
 
           <div className="game-room">
+            {/* Desktop / Core Layout (hidden elements on mobile via CSS) */}
+            <div className="core-layout-wrapper" style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div className="sidebar card desktop-sidebar" style={{ padding: '16px' }}>
               {renderPlayersList()}
             </div>
@@ -600,7 +603,37 @@ function App() {
               )}
             </div>
 
-            <div className="mobile-chat-layout" style={{ flex: 1, display: 'flex', minHeight: 0, gap: '8px' }}>
+            </div> {/* End of core-layout-wrapper */}
+
+            {/* Mobile Bottom Navigation (Instagram Style) */}
+            <div className="mobile-bottom-nav">
+              <button className={activeMobileTab === 'draw' ? 'active' : ''} onClick={() => setActiveMobileTab('draw')}>
+                <span className="icon">🖌️</span>
+              </button>
+              <button className={activeMobileTab === 'chat' ? 'active' : ''} onClick={() => setActiveMobileTab('chat')}>
+                <span className="icon">💬</span>
+              </button>
+              <button className={activeMobileTab === 'players' ? 'active' : ''} onClick={() => setActiveMobileTab('players')}>
+                <span className="icon">👥</span>
+              </button>
+              <button className={activeMobileTab === 'settings' ? 'active' : ''} onClick={() => setActiveMobileTab('settings')}>
+                <span className="icon">⚙️</span>
+              </button>
+              <button 
+                className="emoji-btn" 
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              >
+                <span className="icon">😀</span>
+              </button>
+            </div>
+
+            {/* Bottom Sheet for Mobile */}
+            <div className={`bottom-sheet ${activeMobileTab !== 'draw' ? 'open' : ''}`}>
+              <div className="bottom-sheet-handle" onClick={() => setActiveMobileTab('draw')} />
+              <div className="bottom-sheet-content">
+                {activeMobileTab === 'chat' && (
+                  <div className="mobile-chat-sheet" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+
               <div className="sidebar card chat-sidebar" style={{ flex: 1 }}>
               <h4 style={{ marginBottom: '8px', color: 'var(--color-secondary)' }}>Chat ({roomId})</h4>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -943,7 +976,7 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
   const ROWS = 60;
   
   // Drawing options state
-  const [selectedColor, setSelectedColor] = useState('random');
+  const [selectedColor, setSelectedColor] = useState('#1d1d1d');
   const [customColor, setCustomColor] = useState('#000000');
   const [isPermanent, setIsPermanent] = useState(true);
   const [drawMode, setDrawMode] = useState('click'); // 'hover', 'click', or 'none'
@@ -1079,7 +1112,14 @@ function Hoverboard({ socket, isArtist, isPlaying, activeMutator, canvasType }) 
     };
 
     const onClear = () => {
-      squaresRef.current.forEach((sq, idx) => removeColor(sq, idx));
+      squaresRef.current.forEach((sq, idx) => {
+        sq.style.transitionDuration = '0s';
+        const def = 'rgba(255, 255, 255, 0.7)';
+        sq.style.background = def;
+        boardStateRef.current[idx] = def;
+      });
+      undoStackRef.current = [];
+      redoStackRef.current = [];
     };
 
     const onBoardState = (state) => {
